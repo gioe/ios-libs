@@ -1,0 +1,56 @@
+{
+  "version": "1",
+  "project_type": "ios_app",
+  "tasks": [
+    {
+      "summary": "Add gioe/ios-libs as an SPM dependency",
+      "description": "Add https://github.com/gioe/ios-libs to your Xcode project via Swift Package Manager. In Package.swift or Xcode's package manager UI, add the package and select the products you need.\n\nFor most projects start with SharedKit (generic UI components) and APIClient (HTTP client). Only add AIQAPIClient if you want the pre-built AIQ UI extensions; otherwise you will create your own product-specific target on top of APIClient.\n\nMinimum platform: iOS 16.",
+      "priority": "High",
+      "task_type": "feature",
+      "complexity": "XS",
+      "criteria": [
+        "ios-libs package resolves successfully in Xcode / swift build",
+        "Target dependencies include at least SharedKit or APIClient",
+        "Project builds cleanly after adding the package"
+      ]
+    },
+    {
+      "summary": "Configure SharedKit design tokens for the project",
+      "description": "Import SharedKit and apply its design system to your SwiftUI app.\n\nSharedKit provides:\n- Color tokens (ColorTokens / ColorPalette)\n- Typography tokens (TextStyles)\n- Theme support (light / dark)\n- View extensions for consistent spacing and surface treatment\n\nSteps:\n1. Import SharedKit in your App entry point or root view.\n2. Inject the theme into the environment: `.environment(\\.colorScheme, ...)` or use SharedKit's ThemeEnvironmentKey if provided.\n3. Replace any raw Color / Font literals in your views with SharedKit tokens.\n4. Verify the design tokens render correctly in both light and dark mode.",
+      "priority": "Medium",
+      "task_type": "feature",
+      "complexity": "S",
+      "criteria": [
+        "SharedKit is imported and theme applied at the app root",
+        "Color and typography literals replaced with SharedKit design tokens in at least one feature screen",
+        "UI renders correctly in light and dark mode in Simulator"
+      ]
+    },
+    {
+      "summary": "Set up APIClient with the project's openapi.json",
+      "description": "Configure APIClient with your backend's OpenAPI spec using the 'bring your own openapi.json' pattern.\n\nWorkflow:\n1. Copy your backend's OpenAPI 3.x spec to Sources/APIClient/openapi.json (replacing the bundled AIQ spec).\n2. Ensure openapi-generator-config.yaml has `accessModifier: public` so generated types can be extended from outside the module.\n3. Build the package — the Swift OpenAPI Generator plugin regenerates all types from your spec at build time.\n4. Create a product-specific target (e.g. MyAppAPIClient) that depends on APIClient and contains +UI.swift extension files for your generated types. Do not add product-specific symbols to APIClient itself.\n5. In your app target, import MyAppAPIClient (which transitively imports APIClient).\n\nThe base URL and transport are configured at runtime:\n```swift\nlet transport = URLSessionTransport()\nlet client = Client(serverURL: URL(string: \"https://api.example.com\")!, transport: transport)\n```",
+      "priority": "High",
+      "task_type": "feature",
+      "complexity": "S",
+      "criteria": [
+        "openapi.json replaced with the project's own OpenAPI 3.x spec",
+        "Package builds without errors after spec replacement",
+        "A product-specific target (e.g. MyAppAPIClient) is created with +UI extensions for generated types",
+        "Client can be instantiated with the project's base URL and makes a successful test request"
+      ]
+    },
+    {
+      "summary": "Add AuthenticationMiddleware and LoggingMiddleware to APIClient",
+      "description": "Wire up the two middleware types provided by ios-libs.\n\nAuthenticationMiddleware injects an Authorization header on outgoing requests. Provide a token source (closure or actor) so the middleware always fetches the current token:\n```swift\nlet authMiddleware = AuthenticationMiddleware { await tokenStore.currentToken }\n```\n\nLoggingMiddleware logs request method + URL and response status code. It is safe to include in production builds — it uses os.log at the debug level and does not log request or response bodies.\n\nWire both into the Client initializer in order (auth first, then logging):\n```swift\nlet client = Client(\n    serverURL: baseURL,\n    transport: URLSessionTransport(),\n    middlewares: [authMiddleware, loggingMiddleware]\n)\n```\n\nStore the configured client in a shared service or environment object so views and view models can access it without re-creating it on each call.",
+      "priority": "Medium",
+      "task_type": "feature",
+      "complexity": "XS",
+      "criteria": [
+        "AuthenticationMiddleware instantiated with a live token source (not a hardcoded string)",
+        "LoggingMiddleware added to the middleware stack",
+        "Client is initialised once and injected via environment or dependency injection — not recreated per call",
+        "An authenticated API call succeeds end-to-end in the Simulator or on device"
+      ]
+    }
+  ]
+}
