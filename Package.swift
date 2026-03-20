@@ -11,13 +11,6 @@ let package = Package(
             name: "APIClient",
             targets: ["APIClient"]
         ),
-        // Product-specific library for the AIQ app.
-        // Contains UI extensions over the generated APIClient types.
-        // Replace openapi.json and add your own +UI extensions to adapt for a different backend.
-        .library(
-            name: "AIQAPIClient",
-            targets: ["AIQAPIClient"]
-        ),
         .library(
             name: "SharedKit",
             targets: ["SharedKit"]
@@ -56,12 +49,6 @@ let package = Package(
             plugins: [
                 .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
             ]
-        ),
-        // Product-specific UI extensions over the generated APIClient types.
-        // Depends on APIClient so callers only need to import AIQAPIClient.
-        .target(
-            name: "AIQAPIClient",
-            dependencies: ["APIClient"]
         ),
         .target(
             name: "SharedKit",
