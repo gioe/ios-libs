@@ -8,13 +8,14 @@
 // Pattern: Each extension file follows the naming convention `<TypeName>+UI.swift` and adds
 // computed properties for formatting, display text, colors, and accessibility.
 //
-// Note: These extensions are added to the AIQAPIClient package (not the main app) because
-// the generated types have `internal` access. Extensions must be in the same module.
+// Note: These extensions live in the AIQAPIClient target (separate from APIClient) since
+// the generated types are public. Import AIQAPIClient to use these UI helpers.
 //
 // NOTE: Date formatting should be done in the UI layer using the main app's Date+Extensions
 // which provides cached, locale-aware formatters. This package provides raw computed values.
 
 import Foundation
+import APIClient
 
 // MARK: - Formatting Extensions
 

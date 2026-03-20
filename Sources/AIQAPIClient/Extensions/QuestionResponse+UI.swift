@@ -17,6 +17,7 @@
 // The API client package should remain language-agnostic and return raw values.
 
 import Foundation
+import APIClient
 
 public extension Components.Schemas.QuestionResponse {
     // MARK: - Question Type Display

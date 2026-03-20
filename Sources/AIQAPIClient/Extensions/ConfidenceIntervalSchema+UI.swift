@@ -7,6 +7,7 @@
 // Pattern: Each extension file follows the naming convention `<TypeName>+UI.swift`.
 
 import Foundation
+import APIClient
 
 public extension Components.Schemas.ConfidenceIntervalSchema {
     /// Formatted range string (e.g., "101-115")

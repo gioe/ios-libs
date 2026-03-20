@@ -10,6 +10,7 @@
 // which provides cached, locale-aware formatters. This package provides raw computed values.
 
 import Foundation
+import APIClient
 
 public extension Components.Schemas.UserResponse {
     /// Full name combining first and last name (e.g., "John Smith")
