@@ -14,11 +14,11 @@ public enum ToastType {
         }
     }
 
-    public var backgroundColor: Color {
+    public func backgroundColor(from colors: ColorTokens) -> Color {
         switch self {
-        case .error: Color.red
-        case .warning: Color.orange
-        case .info: Color.blue
+        case .error: colors.error
+        case .warning: colors.warning
+        case .info: colors.info
         }
     }
 }
@@ -60,12 +60,12 @@ public struct ToastView: View {
     public var body: some View {
         HStack(spacing: theme.spacing.md) {
             Image(systemName: type.icon)
-                .foregroundColor(.white)
+                .foregroundColor(theme.colors.textOnPrimary)
                 .font(.system(size: theme.iconSizes.sm))
 
             Text(message)
-                .font(.subheadline)
-                .foregroundColor(.white)
+                .font(theme.typography.bodySmall)
+                .foregroundColor(theme.colors.textOnPrimary)
                 .multilineTextAlignment(.leading)
                 .lineLimit(3)
 
@@ -75,13 +75,13 @@ public struct ToastView: View {
                 icon: "xmark",
                 action: onDismiss,
                 accessibilityLabel: "Dismiss",
-                foregroundColor: .white,
+                foregroundColor: theme.colors.textOnPrimary,
                 hapticManager: hapticManager
             )
             .accessibilityIdentifier("toast.dismissButton")
         }
         .padding(theme.spacing.lg)
-        .background(type.backgroundColor)
+        .background(type.backgroundColor(from: theme.colors))
         .cornerRadius(theme.cornerRadius.md)
         .shadowStyle(theme.shadows.lg)
         .padding(.horizontal, theme.spacing.lg)

@@ -44,7 +44,7 @@ public struct ErrorBanner: View {
     }
 
     private var containerStack: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: theme.spacing.md) {
             bannerContent
 
             Spacer()
@@ -53,13 +53,13 @@ public struct ErrorBanner: View {
                 icon: "xmark",
                 action: onDismiss,
                 accessibilityLabel: "Dismiss",
-                foregroundColor: .white
+                foregroundColor: theme.colors.textOnPrimary
             )
             .accessibilityIdentifier("errorBanner.dismissButton")
             .accessibilityHint(dismissHint ?? "")
         }
         .padding()
-        .background(Color.red)
+        .background(theme.colors.error)
         .cornerRadius(theme.cornerRadius.md)
         .shadowStyle(theme.shadows.sm)
     }
@@ -81,13 +81,13 @@ public struct ErrorBanner: View {
     }
 
     private var iconAndMessage: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: theme.spacing.md) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundColor(.white)
+                .foregroundColor(theme.colors.textOnPrimary)
 
             Text(message)
-                .font(.subheadline)
-                .foregroundColor(.white)
+                .font(theme.typography.bodySmall)
+                .foregroundColor(theme.colors.textOnPrimary)
                 .multilineTextAlignment(.leading)
         }
     }

@@ -64,13 +64,13 @@ public struct ConfirmationModal: View {
 
     public var body: some View {
         ZStack {
-            Color.black.opacity(0.4)
+            theme.colors.scrim
                 .ignoresSafeArea()
                 .onTapGesture { onCancel() }
 
             VStack(spacing: theme.spacing.lg) {
                 Image(systemName: iconName)
-                    .font(.system(size: 32))
+                    .font(.system(size: theme.iconSizes.lg))
                     .foregroundColor(theme.colors.error)
                     .accessibilityHidden(true)
 
@@ -92,7 +92,7 @@ public struct ConfirmationModal: View {
                             .frame(maxWidth: .infinity)
                             .padding(theme.spacing.lg)
                             .background(theme.colors.error)
-                            .foregroundColor(.white)
+                            .foregroundColor(theme.colors.textOnPrimary)
                             .cornerRadius(theme.cornerRadius.md)
                     }
                     .accessibilityLabel(confirmAccessibilityLabel)

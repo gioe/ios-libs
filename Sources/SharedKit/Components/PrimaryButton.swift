@@ -37,7 +37,7 @@ public struct PrimaryButton: View {
                 HStack {
                     if isLoading {
                         ProgressView()
-                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .progressViewStyle(CircularProgressViewStyle(tint: theme.colors.textOnPrimary))
                             .scaleEffect(0.8)
                             .accessibilityHidden(true) // Hide visual loading indicator
                     }
@@ -47,7 +47,7 @@ public struct PrimaryButton: View {
                 }
                 .padding(theme.spacing.lg)
                 .background(isDisabled ? theme.colors.textSecondary : theme.colors.primary)
-                .foregroundColor(.white)
+                .foregroundColor(theme.colors.textOnPrimary)
                 .cornerRadius(theme.cornerRadius.md)
             }
         )

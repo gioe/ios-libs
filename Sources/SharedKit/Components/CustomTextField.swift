@@ -38,11 +38,10 @@ public struct CustomTextField: View {
     }
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: theme.spacing.sm) {
             Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
+                .font(theme.typography.labelMedium)
+                .foregroundColor(theme.colors.textPrimary)
                 .accessibilityHidden(true) // Hide label as it's redundant with field label
 
             Group {
@@ -67,11 +66,11 @@ public struct CustomTextField: View {
                 }
             }
             .padding()
-            .background(Color(.systemGray6))
+            .background(theme.colors.backgroundTertiary)
             .cornerRadius(theme.cornerRadius.sm)
             .overlay(
                 RoundedRectangle(cornerRadius: theme.cornerRadius.sm)
-                    .stroke(Color(.systemGray4), lineWidth: 1)
+                    .stroke(theme.colors.textTertiary, lineWidth: 1)
             )
         }
     }

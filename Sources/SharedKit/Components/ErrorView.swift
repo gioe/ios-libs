@@ -5,24 +5,26 @@ public struct ErrorView: View {
     public let error: Error
     public let retryAction: (() -> Void)?
 
+    @Environment(\.appTheme) private var theme
+
     public init(error: Error, retryAction: (() -> Void)? = nil) {
         self.error = error
         self.retryAction = retryAction
     }
 
     public var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: theme.spacing.lg) {
             Image(systemName: "exclamationmark.triangle.fill")
-                .font(.system(size: 48))
-                .foregroundColor(.orange)
+                .font(.system(size: theme.iconSizes.xl))
+                .foregroundColor(theme.colors.warning)
                 .accessibilityHidden(true) // Decorative icon
 
             Text("Something Went Wrong")
-                .font(.headline)
+                .font(theme.typography.h4)
 
             Text(error.localizedDescription)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(theme.typography.bodySmall)
+                .foregroundColor(theme.colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
 

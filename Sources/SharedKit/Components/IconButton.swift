@@ -68,6 +68,6 @@ public struct IconButton: View {
         )
     }
     .padding()
-    .background(Color(.systemGroupedBackground))
+    .background(ColorPalette.backgroundGrouped)
 }
 #endif

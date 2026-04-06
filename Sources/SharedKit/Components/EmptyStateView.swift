@@ -51,7 +51,7 @@ public struct EmptyStateView: View {
                 Button(action: action) {
                     Text(actionTitle)
                         .font(theme.typography.button)
-                        .foregroundColor(.white)
+                        .foregroundColor(theme.colors.textOnPrimary)
                         .frame(maxWidth: .infinity)
                         .padding(theme.spacing.lg)
                         .background(theme.colors.primary)

@@ -22,7 +22,7 @@ public struct LoadingOverlay: View {
             VStack(spacing: theme.spacing.xl) {
                 // Animated brain icon
                 Image(systemName: "brain.head.profile")
-                    .font(.system(size: 48))
+                    .font(.system(size: theme.iconSizes.xl))
                     .foregroundStyle(theme.gradients.scoreGradient)
                     .rotationEffect(.degrees(rotationAngle))
                     .scaleEffect(reduceMotion ? 1.0 : (isAnimating ? 1.1 : 1.0))

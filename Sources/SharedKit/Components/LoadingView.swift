@@ -4,18 +4,20 @@ import SwiftUI
 public struct LoadingView: View {
     public var message: String = "Loading..."
 
+    @Environment(\.appTheme) private var theme
+
     public init(message: String = "Loading...") {
         self.message = message
     }
 
     public var body: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: theme.spacing.lg) {
             ProgressView()
                 .scaleEffect(1.5)
                 .accessibilityHidden(true) // Visual indicator only
             Text(message)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+                .font(theme.typography.bodySmall)
+                .foregroundColor(theme.colors.textSecondary)
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(message)

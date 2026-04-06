@@ -43,7 +43,7 @@ public struct IconContentRow: View {
             Image(systemName: icon)
                 .font(.system(size: theme.iconSizes.md))
                 .foregroundColor(iconColor)
-                .frame(width: 32, height: 32)
+                .frame(width: theme.iconSizes.lg, height: theme.iconSizes.lg)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: theme.spacing.xs) {
