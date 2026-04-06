@@ -52,4 +52,14 @@ A design system + component library + service layer.
 - `KeychainStorage` — `kSecAttrAccessibleWhenUnlockedThisDeviceOnly`, implements `SecureStorageProtocol`
 - `NetworkMonitor` — singleton (`NetworkMonitor.shared`), `NWPathMonitor`-backed, publishes `isConnected` and `connectionType`
 
-**Validators** (`Sources/SharedKit/Utilities/Validators.swift`) — email, password, phone, URL validation returning `ValidationResult`.
+**Validators** (`Sources/SharedKit/Utilities/Validators.swift`) — email, password, name, phone, URL, minimum length, and birth year validation returning `ValidationResult`.
+
+<!-- tusk-task-tools -->
+## Tusk Task Lookup
+
+**Do NOT use Claude Code's built-in `TaskList`, `TaskGet`, or `TaskUpdate` tools to look up or manage tasks.** Those tools manage background agent subprocesses, not tusk tasks.
+
+Use the tusk CLI instead:
+- `tusk task-list` — list tasks
+- `tusk task-get <id>` — get a task by ID (accepts `506` or `TASK-506`)
+- `tusk task-update <id>` — update a task

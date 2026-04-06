@@ -224,6 +224,137 @@ struct ValidatorsTests {
         }
     }
 
+    // MARK: - Phone Validation
+
+    @Suite("Phone")
+    struct PhoneTests {
+        @Test("valid US phone returns .valid")
+        func validUSPhone() {
+            let result = Validators.validatePhone("(555) 123-4567")
+            #expect(result.isValid)
+        }
+
+        @Test("valid international phone returns .valid")
+        func validInternational() {
+            let result = Validators.validatePhone("+44 20 7946 0958")
+            #expect(result.isValid)
+        }
+
+        @Test("digits only returns .valid")
+        func digitsOnly() {
+            let result = Validators.validatePhone("5551234567")
+            #expect(result.isValid)
+        }
+
+        @Test("empty phone returns required error")
+        func emptyPhone() {
+            let result = Validators.validatePhone("")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "Phone number is required")
+        }
+
+        @Test("whitespace-only phone returns required error")
+        func whitespaceOnly() {
+            let result = Validators.validatePhone("   ")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "Phone number is required")
+        }
+
+        @Test("too few digits returns error")
+        func tooFewDigits() {
+            let result = Validators.validatePhone("123456")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "Phone number must contain at least 7 digits")
+        }
+
+        @Test("too many digits returns error")
+        func tooManyDigits() {
+            let result = Validators.validatePhone("1234567890123456")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "Phone number must contain no more than 15 digits")
+        }
+
+        @Test("letters in phone returns error")
+        func lettersInPhone() {
+            let result = Validators.validatePhone("555-ABC-1234")
+            #expect(!result.isValid)
+        }
+
+        @Test("exactly 7 digits is valid")
+        func sevenDigits() {
+            let result = Validators.validatePhone("1234567")
+            #expect(result.isValid)
+        }
+
+        @Test("exactly 15 digits is valid")
+        func fifteenDigits() {
+            let result = Validators.validatePhone("123456789012345")
+            #expect(result.isValid)
+        }
+    }
+
+    // MARK: - URL Validation
+
+    @Suite("URL")
+    struct URLTests {
+        @Test("valid https URL returns .valid")
+        func validHttps() {
+            let result = Validators.validateURL("https://example.com")
+            #expect(result.isValid)
+        }
+
+        @Test("valid http URL returns .valid")
+        func validHttp() {
+            let result = Validators.validateURL("http://example.com")
+            #expect(result.isValid)
+        }
+
+        @Test("URL with path returns .valid")
+        func urlWithPath() {
+            let result = Validators.validateURL("https://example.com/path/to/resource")
+            #expect(result.isValid)
+        }
+
+        @Test("URL with query string returns .valid")
+        func urlWithQuery() {
+            let result = Validators.validateURL("https://example.com?key=value")
+            #expect(result.isValid)
+        }
+
+        @Test("empty URL returns required error")
+        func emptyURL() {
+            let result = Validators.validateURL("")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "URL is required")
+        }
+
+        @Test("whitespace-only URL returns required error")
+        func whitespaceOnly() {
+            let result = Validators.validateURL("   ")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "URL is required")
+        }
+
+        @Test("URL without scheme returns invalid")
+        func noScheme() {
+            let result = Validators.validateURL("example.com")
+            #expect(!result.isValid)
+            #expect(result.errorMessage == "Please enter a valid URL (e.g. https://example.com)")
+        }
+
+        @Test("ftp scheme returns invalid")
+        func ftpScheme() {
+            let result = Validators.validateURL("ftp://example.com")
+            #expect(!result.isValid)
+        }
+
+        @Test("just a scheme returns invalid")
+        func schemeOnly() {
+            let result = Validators.validateURL("https://")
+            #expect(!result.isValid)
+        }
+    }
+
     // MARK: - Birth Year Validation
 
     @Suite("BirthYear")

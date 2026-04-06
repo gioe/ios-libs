@@ -144,6 +144,70 @@ public enum Validators {
         validateMinLength(text, fieldName: "Description", min: 10)
     }
 
+    // MARK: - Phone Validation
+
+    /// Validate phone number format
+    ///
+    /// Phone Requirements:
+    /// - Must not be empty or whitespace-only
+    /// - Must contain only digits, spaces, hyphens, parentheses, or a leading `+`
+    /// - Must contain at least 7 digits and no more than 15 (E.164 range)
+    ///
+    /// - Parameter phone: The phone number string to validate
+    /// - Returns: `.valid` if phone meets all requirements, `.invalid(message)` otherwise
+    public static func validatePhone(_ phone: String) -> ValidationResult {
+        guard phone.isNotEmpty else {
+            return .invalid("Phone number is required")
+        }
+
+        // Strip allowed formatting characters to count digits
+        let allowedFormatting = CharacterSet(charactersIn: " -+()")
+        let stripped = phone.unicodeScalars.filter { !allowedFormatting.contains($0) }
+
+        // After stripping formatting, only digits should remain
+        guard stripped.allSatisfy(\.properties.isASCIIHexDigit),
+              stripped.allSatisfy({ $0.value >= 0x30 && $0.value <= 0x39 }) else {
+            return .invalid("Phone number can only contain digits, spaces, hyphens, parentheses, or a leading +")
+        }
+
+        let digitCount = stripped.count
+        guard digitCount >= 7 else {
+            return .invalid("Phone number must contain at least 7 digits")
+        }
+        guard digitCount <= 15 else {
+            return .invalid("Phone number must contain no more than 15 digits")
+        }
+
+        return .valid
+    }
+
+    // MARK: - URL Validation
+
+    /// Validate URL format
+    ///
+    /// URL Requirements:
+    /// - Must not be empty or whitespace-only
+    /// - Must be parseable by `URL(string:)`
+    /// - Must have an `http` or `https` scheme
+    /// - Must have a non-empty host
+    ///
+    /// - Parameter urlString: The URL string to validate
+    /// - Returns: `.valid` if URL meets all requirements, `.invalid(message)` otherwise
+    public static func validateURL(_ urlString: String) -> ValidationResult {
+        guard urlString.isNotEmpty else {
+            return .invalid("URL is required")
+        }
+
+        guard let url = URL(string: urlString),
+              let scheme = url.scheme?.lowercased(),
+              (scheme == "http" || scheme == "https"),
+              let host = url.host, !host.isEmpty else {
+            return .invalid("Please enter a valid URL (e.g. https://example.com)")
+        }
+
+        return .valid
+    }
+
     // MARK: - Birth Year Validation
 
     /// Validate birth year field
