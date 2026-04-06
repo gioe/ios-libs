@@ -153,6 +153,60 @@ struct APIErrorTests {
         #expect(error.isRetryable == false)
     }
 
+    // MARK: - HTTP Status Code Factory
+
+    @Test("Returns nil for success status codes")
+    func fromHTTPStatusSuccess() {
+        #expect(APIError.fromHTTPStatus(200) == nil)
+        #expect(APIError.fromHTTPStatus(201) == nil)
+        #expect(APIError.fromHTTPStatus(204) == nil)
+        #expect(APIError.fromHTTPStatus(299) == nil)
+    }
+
+    @Test("Maps 400 to badRequest")
+    func fromHTTPStatus400() {
+        #expect(APIError.fromHTTPStatus(400) == .badRequest(message: nil))
+        #expect(APIError.fromHTTPStatus(400, message: "Invalid") == .badRequest(message: "Invalid"))
+    }
+
+    @Test("Maps 401 to unauthorized")
+    func fromHTTPStatus401() {
+        #expect(APIError.fromHTTPStatus(401) == .unauthorized(message: nil))
+    }
+
+    @Test("Maps 403 to forbidden")
+    func fromHTTPStatus403() {
+        #expect(APIError.fromHTTPStatus(403) == .forbidden(message: nil))
+    }
+
+    @Test("Maps 404 to notFound")
+    func fromHTTPStatus404() {
+        #expect(APIError.fromHTTPStatus(404) == .notFound(message: nil))
+    }
+
+    @Test("Maps 422 to unprocessableEntity")
+    func fromHTTPStatus422() {
+        #expect(APIError.fromHTTPStatus(422) == .unprocessableEntity(message: nil))
+    }
+
+    @Test("Maps 429 to rateLimitExceeded")
+    func fromHTTPStatus429() {
+        #expect(APIError.fromHTTPStatus(429) == .rateLimitExceeded(message: nil))
+    }
+
+    @Test("Maps 5xx to serverError with status code")
+    func fromHTTPStatus5xx() {
+        #expect(APIError.fromHTTPStatus(500) == .serverError(statusCode: 500, message: nil))
+        #expect(APIError.fromHTTPStatus(502) == .serverError(statusCode: 502, message: nil))
+        #expect(APIError.fromHTTPStatus(503, message: "Unavailable") == .serverError(statusCode: 503, message: "Unavailable"))
+    }
+
+    @Test("Maps unknown error codes to unknown")
+    func fromHTTPStatusUnknown() {
+        #expect(APIError.fromHTTPStatus(418) == .unknown(message: nil))
+        #expect(APIError.fromHTTPStatus(100) == .unknown(message: nil))
+    }
+
     // MARK: - Equality
 
     @Test("Equal errors with same cases and values")

@@ -35,6 +35,47 @@ public enum APIError: Error, LocalizedError, RetryableError, Equatable {
     /// Rate limit exceeded
     case rateLimitExceeded(message: String? = nil)
 
+    // MARK: - Factory
+
+    /// Creates an `APIError` from an HTTP status code.
+    ///
+    /// Maps common status codes to their semantic error cases:
+    /// - 400 → `.badRequest`
+    /// - 401 → `.unauthorized`
+    /// - 403 → `.forbidden`
+    /// - 404 → `.notFound`
+    /// - 422 → `.unprocessableEntity`
+    /// - 429 → `.rateLimitExceeded`
+    /// - 500–599 → `.serverError`
+    /// - All other non-2xx → `.unknown`
+    ///
+    /// - Parameters:
+    ///   - statusCode: The HTTP status code from the response.
+    ///   - message: An optional error message from the response body.
+    /// - Returns: `nil` if the status code indicates success (200–299).
+    public static func fromHTTPStatus(_ statusCode: Int, message: String? = nil) -> APIError? {
+        guard !(200...299).contains(statusCode) else { return nil }
+
+        switch statusCode {
+        case 400:
+            return .badRequest(message: message)
+        case 401:
+            return .unauthorized(message: message)
+        case 403:
+            return .forbidden(message: message)
+        case 404:
+            return .notFound(message: message)
+        case 422:
+            return .unprocessableEntity(message: message)
+        case 429:
+            return .rateLimitExceeded(message: message)
+        case 500...599:
+            return .serverError(statusCode: statusCode, message: message)
+        default:
+            return .unknown(message: message)
+        }
+    }
+
     // MARK: - LocalizedError
 
     /// User-friendly error description
