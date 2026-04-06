@@ -43,6 +43,7 @@ let package = Package(
         .target(
             name: "APIClient",
             dependencies: [
+                "SharedKit",
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "OpenAPIURLSession", package: "swift-openapi-urlsession"),
                 .product(name: "HTTPTypes", package: "swift-http-types")
