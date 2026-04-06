@@ -5,30 +5,58 @@ import SwiftUI
 /// Semantic color tokens available for theming
 public struct ColorTokens {
     // Brand
+    /// Primary brand color
     public let primary: Color
+    /// Secondary brand color
     public let secondary: Color
 
     // Semantic (icon use; low contrast in light mode — use accessible text variants for text)
+    /// Success color — use for icons only, not text (low contrast in light mode)
     public let success: Color
+    /// Warning color — use for icons only, not text (low contrast in light mode)
     public let warning: Color
+    /// Error color — large text only in light mode (>= 18pt)
     public let error: Color
+    /// Info color — large text only in light mode (>= 18pt)
     public let info: Color
 
     // Accessible text variants (WCAG AA compliant; use for text, not icons)
+    /// Accessible success text color (WCAG AA 4.5:1)
     public let successText: Color
+    /// Accessible warning text color (WCAG AA 4.5:1)
     public let warningText: Color
+    /// Accessible error text color (WCAG AA 4.5:1)
     public let errorText: Color
+    /// Accessible info text color (WCAG AA 4.5:1)
     public let infoText: Color
 
     // Text
+    /// Primary text color
     public let textPrimary: Color
+    /// Secondary text color (lighter)
     public let textSecondary: Color
+    /// Tertiary text color (lightest)
     public let textTertiary: Color
 
     // Background
+    /// Primary background color
     public let background: Color
+    /// Secondary background color (cards, elevated surfaces)
     public let backgroundSecondary: Color
+    /// Tertiary background color (nested content)
     public let backgroundTertiary: Color
+    /// Grouped background color (lists, table views)
+    public let backgroundGrouped: Color
+
+    // Stat card colors
+    /// Stat card color for "Tests Taken" style metrics
+    public let statBlue: Color
+    /// Stat card color for "Average" style metrics
+    public let statGreen: Color
+    /// Stat card color for time/duration stats
+    public let statPurple: Color
+    /// Stat card color for "Best Score" style metrics
+    public let statOrange: Color
 
     public init(
         primary: Color,
@@ -46,7 +74,12 @@ public struct ColorTokens {
         textTertiary: Color,
         background: Color,
         backgroundSecondary: Color,
-        backgroundTertiary: Color
+        backgroundTertiary: Color,
+        backgroundGrouped: Color,
+        statBlue: Color,
+        statGreen: Color,
+        statPurple: Color,
+        statOrange: Color
     ) {
         self.primary = primary
         self.secondary = secondary
@@ -64,6 +97,11 @@ public struct ColorTokens {
         self.background = background
         self.backgroundSecondary = backgroundSecondary
         self.backgroundTertiary = backgroundTertiary
+        self.backgroundGrouped = backgroundGrouped
+        self.statBlue = statBlue
+        self.statGreen = statGreen
+        self.statPurple = statPurple
+        self.statOrange = statOrange
     }
 }
 
@@ -241,6 +279,21 @@ public struct AnimationTokens {
 //      but the delay is view-choreography logic that belongs with the view.
 //   3. A future theme would never need different stagger delays.
 
+// MARK: - Gradient Tokens
+
+/// Gradient tokens for themed gradient styles
+public struct GradientTokens {
+    /// Score display gradient (blue to purple)
+    public let scoreGradient: LinearGradient
+    /// Trophy/achievement gradient (yellow to orange)
+    public let trophyGradient: LinearGradient
+
+    public init(scoreGradient: LinearGradient, trophyGradient: LinearGradient) {
+        self.scoreGradient = scoreGradient
+        self.trophyGradient = trophyGradient
+    }
+}
+
 // MARK: - AppThemeProtocol
 
 /// Protocol for app-wide visual theming. Conforming types supply typed token groups
@@ -254,6 +307,7 @@ public protocol AppThemeProtocol {
     var shadows: ShadowTokens { get }
     var iconSizes: IconSizeTokens { get }
     var animations: AnimationTokens { get }
+    var gradients: GradientTokens { get }
 }
 
 // MARK: - DefaultTheme
@@ -279,7 +333,12 @@ public struct DefaultTheme: AppThemeProtocol {
         textTertiary: ColorPalette.textTertiary,
         background: ColorPalette.background,
         backgroundSecondary: ColorPalette.backgroundSecondary,
-        backgroundTertiary: ColorPalette.backgroundTertiary
+        backgroundTertiary: ColorPalette.backgroundTertiary,
+        backgroundGrouped: ColorPalette.backgroundGrouped,
+        statBlue: ColorPalette.statBlue,
+        statGreen: ColorPalette.statGreen,
+        statPurple: ColorPalette.statPurple,
+        statOrange: ColorPalette.statOrange
     )
 
     public let typography = TypographyTokens(
@@ -339,5 +398,10 @@ public struct DefaultTheme: AppThemeProtocol {
         standard: DesignSystem.Animation.standard,
         smooth: DesignSystem.Animation.smooth,
         bouncy: DesignSystem.Animation.bouncy
+    )
+
+    public let gradients = GradientTokens(
+        scoreGradient: ColorPalette.scoreGradient,
+        trophyGradient: ColorPalette.trophyGradient
     )
 }
