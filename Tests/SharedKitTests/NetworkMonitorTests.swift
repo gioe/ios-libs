@@ -23,11 +23,10 @@ struct NetworkMonitorTests {
 
     @Test("conforms to NetworkMonitorProtocol")
     func protocolConformance() {
-        let monitor: any NetworkMonitorProtocol = NetworkMonitor()
-        #expect(monitor.isConnected || !monitor.isConnected) // just verifies conformance
-        if let concrete = monitor as? NetworkMonitor {
-            concrete.stopMonitoring()
-        }
+        let monitor = NetworkMonitor()
+        defer { monitor.stopMonitoring() }
+        let proto: any NetworkMonitorProtocol = monitor
+        #expect(proto.isConnected || !proto.isConnected) // verifies conformance
     }
 
     @Test("stopMonitoring does not crash")
