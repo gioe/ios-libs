@@ -24,6 +24,8 @@ public struct ModalPresentation<Route: Hashable>: Identifiable, Equatable {
     }
 }
 
+extension ModalPresentation: Sendable where Route: Sendable {}
+
 /// Protocol for navigation coordination.
 ///
 /// Consumers define a `Route` enum conforming to `Hashable` and use the
