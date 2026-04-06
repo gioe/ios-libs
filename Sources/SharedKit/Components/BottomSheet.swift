@@ -19,7 +19,7 @@ public enum BottomSheetDetent: Hashable, Equatable {
         case .fraction(let fraction):
             return availableHeight * min(max(fraction, 0), 1)
         case .height(let height):
-            return min(height, availableHeight)
+            return min(max(height, 0), availableHeight)
         }
     }
 }
@@ -223,6 +223,7 @@ private struct BottomSheetModifier<SheetContent: View>: ViewModifier {
     let detents: [BottomSheetDetent]
     var selectedDetent: Binding<BottomSheetDetent>?
     let showsDragIndicator: Bool
+    let dismissOnScrimTap: Bool
     let onDismiss: (() -> Void)?
     @ViewBuilder let sheetContent: () -> SheetContent
 
@@ -234,6 +235,7 @@ private struct BottomSheetModifier<SheetContent: View>: ViewModifier {
                     detents: detents,
                     selectedDetent: selectedDetent,
                     showsDragIndicator: showsDragIndicator,
+                    dismissOnScrimTap: dismissOnScrimTap,
                     onDismiss: onDismiss,
                     content: sheetContent
                 )
@@ -256,6 +258,7 @@ extension View {
         detents: [BottomSheetDetent] = [.fraction(0.5), .fraction(1.0)],
         selectedDetent: Binding<BottomSheetDetent>? = nil,
         showsDragIndicator: Bool = true,
+        dismissOnScrimTap: Bool = true,
         onDismiss: (() -> Void)? = nil,
         @ViewBuilder content: @escaping () -> Content
     ) -> some View {
@@ -264,6 +267,7 @@ extension View {
             detents: detents,
             selectedDetent: selectedDetent,
             showsDragIndicator: showsDragIndicator,
+            dismissOnScrimTap: dismissOnScrimTap,
             onDismiss: onDismiss,
             sheetContent: content
         ))
