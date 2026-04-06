@@ -13,7 +13,7 @@ public enum ServiceScope {
 
 // MARK: - Service Registration
 
-struct ServiceRegistration {
+private struct ServiceRegistration {
     let scope: ServiceScope
     let factory: () -> Any
 }
@@ -39,11 +39,11 @@ struct ServiceRegistration {
 public final class ServiceContainer: @unchecked Sendable {
     private var registrations: [ObjectIdentifier: ServiceRegistration] = [:]
     private var singletons: [ObjectIdentifier: Any] = [:]
-    private let lock = NSLock()
+    private let lock = NSRecursiveLock()
     private var parent: ServiceContainer?
 
-    /// The shared app-level container. Set this once at app launch.
-    public static var shared = ServiceContainer()
+    /// The shared app-level container.
+    public static let shared = ServiceContainer()
 
     public init() {}
 
@@ -162,22 +162,13 @@ public extension EnvironmentValues {
 /// prefer using `@Environment(\.serviceContainer)` to access a view-hierarchy-specific container.
 @propertyWrapper
 public struct Injected<T> {
-    private var container: ServiceContainer
-    private var cached: T?
+    private let container: ServiceContainer
 
     public init(container: ServiceContainer = .shared) {
         self.container = container
-        self.cached = nil
     }
 
     public var wrappedValue: T {
-        mutating get {
-            if let cached {
-                return cached
-            }
-            let resolved: T = container.resolve()
-            cached = resolved
-            return resolved
-        }
+        container.resolve()
     }
 }

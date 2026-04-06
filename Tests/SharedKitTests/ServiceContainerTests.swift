@@ -140,7 +140,40 @@ struct ServiceContainerTests {
             }
         }
 
-        var consumer = Consumer(container: container)
+        let consumer = Consumer(container: container)
         #expect(consumer.service.greeting == "Hello")
+    }
+
+    // MARK: - Concurrency
+
+    @Test("Concurrent resolves are thread-safe")
+    func concurrentResolves() {
+        let container = ServiceContainer()
+        container.register(CounterService.self, scope: .featureLevel) { SimpleCounter() }
+
+        let iterations = 1000
+        var results = [String?](repeating: nil, count: iterations)
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { i in
+            let service: CounterService = container.resolve()
+            results[i] = service.id
+        }
+
+        let nonNil = results.compactMap { $0 }
+        #expect(nonNil.count == iterations)
+    }
+
+    @Test("Factory that resolves transitive dependency does not deadlock")
+    func transitiveDependency() {
+        let container = ServiceContainer()
+        container.register(CounterService.self) { SimpleCounter() }
+        container.register(GreetingService.self) {
+            // Resolve a transitive dependency inside the factory
+            let _: CounterService = container.resolve()
+            return HelloService()
+        }
+
+        let service: GreetingService = container.resolve()
+        #expect(service.greeting == "Hello")
     }
 }
