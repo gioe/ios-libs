@@ -79,17 +79,23 @@ public final class APIClientFactory {
     /// The logging middleware
     public let loggingMiddleware: LoggingMiddleware
 
+    /// The retry middleware
+    public let retryMiddleware: RetryMiddleware
+
     /// Creates a new API client factory
     /// - Parameters:
     ///   - serverURL: The base URL for API requests
     ///   - logLevel: The logging level (defaults to `.debug` in DEBUG, `.error` otherwise)
+    ///   - retryConfiguration: Configuration for retry behavior. Pass `nil` to disable retries.
     public init(
         serverURL: URL,
-        logLevel: LoggingMiddleware.LogLevel? = nil
+        logLevel: LoggingMiddleware.LogLevel? = nil,
+        retryConfiguration: RetryMiddleware.Configuration? = .init()
     ) {
         self.serverURL = serverURL
         authMiddleware = AuthenticationMiddleware()
         loggingMiddleware = LoggingMiddleware(logLevel: logLevel)
+        retryMiddleware = RetryMiddleware(configuration: retryConfiguration ?? .init(maxRetries: 0))
     }
 
     /// Creates a new configured API client
@@ -110,6 +116,7 @@ public final class APIClientFactory {
             middlewares.append(trm)
         }
         middlewares.append(authMiddleware)
+        middlewares.append(retryMiddleware)
         middlewares.append(loggingMiddleware)
         return Client(
             serverURL: serverURL,
