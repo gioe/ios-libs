@@ -42,6 +42,7 @@ public actor TokenRefreshMiddleware: ClientMiddleware {
 
     private let authMiddleware: AuthenticationMiddleware
     private let refreshHandler: RefreshHandler
+    private let refreshEndpointOperationID: String
 
     /// In-flight refresh task, used to coalesce concurrent 401 responses into a single refresh.
     private var activeRefresh: Task<Tokens, Error>?
@@ -49,12 +50,16 @@ public actor TokenRefreshMiddleware: ClientMiddleware {
     /// Creates a new token refresh middleware.
     /// - Parameters:
     ///   - authMiddleware: The authentication middleware whose tokens will be updated on refresh.
+    ///   - refreshEndpointOperationID: The OpenAPI operationID of the refresh endpoint.
+    ///     Requests to this endpoint that return 401 are passed through without triggering a refresh (avoiding infinite loops).
     ///   - refreshHandler: A closure that performs the token refresh and returns new tokens.
     public init(
         authMiddleware: AuthenticationMiddleware,
+        refreshEndpointOperationID: String = "refresh_access_token_v1_auth_refresh_post",
         refreshHandler: @escaping RefreshHandler
     ) {
         self.authMiddleware = authMiddleware
+        self.refreshEndpointOperationID = refreshEndpointOperationID
         self.refreshHandler = refreshHandler
     }
 
@@ -72,7 +77,7 @@ public actor TokenRefreshMiddleware: ClientMiddleware {
         // Don't attempt refresh for the refresh endpoint itself (avoid infinite loop)
         // or for non-401 responses
         guard response.status == .unauthorized,
-              operationID != "refresh_access_token_v1_auth_refresh_post"
+              operationID != refreshEndpointOperationID
         else {
             return (response, responseBody)
         }

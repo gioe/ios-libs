@@ -144,6 +144,58 @@ struct TokenRefreshMiddlewareTests {
         #expect(refreshCalled == false)
     }
 
+    @Test("Does not refresh when 401 comes from a custom refresh endpoint operationID")
+    func doesNotRefreshOnCustomRefreshEndpoint401() async throws {
+        let authMiddleware = AuthenticationMiddleware(refreshToken: "expired-refresh")
+        var refreshCalled = false
+
+        let middleware = TokenRefreshMiddleware(
+            authMiddleware: authMiddleware,
+            refreshEndpointOperationID: "custom_refresh_op"
+        ) { _ in
+            refreshCalled = true
+            return .init(accessToken: "new", refreshToken: "new")
+        }
+
+        let (response, _) = try await middleware.intercept(
+            makeRequest(path: "/v1/auth/refresh"),
+            body: nil,
+            baseURL: testBaseURL,
+            operationID: "custom_refresh_op"
+        ) { _, _, _ in
+            (HTTPResponse(status: .unauthorized), nil)
+        }
+
+        #expect(response.status == .unauthorized)
+        #expect(refreshCalled == false)
+    }
+
+    @Test("Refreshes on 401 from default operationID when custom one is configured")
+    func refreshesOnDefaultOperationIDWhenCustomConfigured() async throws {
+        let authMiddleware = AuthenticationMiddleware(accessToken: "expired")
+        var refreshCalled = false
+
+        let middleware = TokenRefreshMiddleware(
+            authMiddleware: authMiddleware,
+            refreshEndpointOperationID: "custom_refresh_op"
+        ) { _ in
+            refreshCalled = true
+            return .init(accessToken: "fresh", refreshToken: "fresh-refresh")
+        }
+
+        let (response, _) = try await middleware.intercept(
+            makeRequest(),
+            body: nil,
+            baseURL: testBaseURL,
+            operationID: "refresh_access_token_v1_auth_refresh_post"
+        ) { _, _, _ in
+            (HTTPResponse(status: .unauthorized), nil)
+        }
+
+        // The old default operationID is no longer guarded — should trigger refresh
+        #expect(refreshCalled == true)
+    }
+
     // MARK: - Error Propagation
 
     @Test("Propagates refresh handler errors")
