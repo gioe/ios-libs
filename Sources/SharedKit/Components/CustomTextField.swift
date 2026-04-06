@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if canImport(UIKit)
 /// A reusable styled text field with consistent appearance
 public struct CustomTextField: View {
     public let title: String
@@ -75,6 +76,7 @@ public struct CustomTextField: View {
         }
     }
 }
+#endif
 
 // MARK: - View Extension for Optional Accessibility Identifier
 
@@ -91,6 +93,7 @@ public extension View {
     }
 }
 
+#if canImport(UIKit)
 #Preview {
     VStack(spacing: 20) {
         CustomTextField(
@@ -110,3 +113,4 @@ public extension View {
     }
     .padding()
 }
+#endif

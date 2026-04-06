@@ -44,6 +44,7 @@ public struct IconButton: View {
     }
 }
 
+#if canImport(UIKit)
 #Preview("Default") {
     HStack(spacing: 20) {
         IconButton(
@@ -69,3 +70,4 @@ public struct IconButton: View {
     .padding()
     .background(Color(.systemGroupedBackground))
 }
+#endif

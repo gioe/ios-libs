@@ -35,6 +35,7 @@ public extension Color {
         )
     }
 
+    #if canImport(UIKit)
     /// Creates a color that adapts to light and dark mode
     /// - Parameters:
     ///   - light: Color to use in light mode
@@ -42,8 +43,18 @@ public extension Color {
     init(light: Color, dark: Color) {
         self.init(uiColor: UIColor(light: UIColor(light), dark: UIColor(dark)))
     }
+    #else
+    /// Creates a color that adapts to light and dark mode (macOS)
+    init(light: Color, dark: Color) {
+        self.init(nsColor: NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .vibrantDark]) != nil
+                ? NSColor(dark) : NSColor(light)
+        })
+    }
+    #endif
 }
 
+#if canImport(UIKit)
 public extension UIColor {
     /// Creates a UIColor that adapts to light and dark mode
     /// - Parameters:
@@ -60,6 +71,7 @@ public extension UIColor {
         }
     }
 }
+#endif
 
 /// Centralized color palette
 /// Provides consistent colors across light and dark modes
@@ -131,21 +143,41 @@ public enum ColorPalette {
 
     /// Tertiary text color (lightest)
     /// - Warning: Low contrast in light mode - use for decorative content only
+    #if canImport(UIKit)
     public static let textTertiary = Color(uiColor: .tertiaryLabel)
+    #else
+    public static let textTertiary = Color(nsColor: .tertiaryLabelColor)
+    #endif
 
     // MARK: - Background Colors
 
     /// Primary background color
+    #if canImport(UIKit)
     public static let background = Color(uiColor: .systemBackground)
+    #else
+    public static let background = Color(nsColor: .windowBackgroundColor)
+    #endif
 
     /// Secondary background color (for cards, elevated surfaces)
+    #if canImport(UIKit)
     public static let backgroundSecondary = Color(uiColor: .secondarySystemBackground)
+    #else
+    public static let backgroundSecondary = Color(nsColor: .controlBackgroundColor)
+    #endif
 
     /// Tertiary background color (for nested content)
+    #if canImport(UIKit)
     public static let backgroundTertiary = Color(uiColor: .tertiarySystemBackground)
+    #else
+    public static let backgroundTertiary = Color(nsColor: .underPageBackgroundColor)
+    #endif
 
     /// Grouped background (for lists, table views)
+    #if canImport(UIKit)
     public static let backgroundGrouped = Color(uiColor: .systemGroupedBackground)
+    #else
+    public static let backgroundGrouped = Color(nsColor: .windowBackgroundColor)
+    #endif
 
     // MARK: - Chart Colors
 

@@ -10,7 +10,7 @@ public extension View {
 
     /// Add a border with rounded corners
     func roundedBorder(
-        color: Color = Color(.systemGray4),
+        color: Color = .gray.opacity(0.4),
         lineWidth: CGFloat = 1,
         cornerRadius: CGFloat = 10
     ) -> some View {

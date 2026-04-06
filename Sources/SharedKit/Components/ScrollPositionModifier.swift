@@ -55,7 +55,7 @@ public struct ScrollPositionData: Codable, Equatable {
 /// ```
 ///
 /// Thread Safety: Safe to use from main thread (ViewModifiers run on MainActor)
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 private struct ScrollPositionPersistenceModifier<Item: Identifiable>: ViewModifier where Item.ID == Int {
     let viewId: String
     let items: [Item]
@@ -139,7 +139,7 @@ public extension View {
         shouldClear: Bool = false,
         storage: ScrollPositionStorageProtocol
     ) -> some View where Item.ID == Int {
-        if #available(iOS 17.0, *) {
+        if #available(iOS 17.0, macOS 14.0, *) {
             modifier(ScrollPositionPersistenceModifier(
                 viewId: viewId,
                 items: items,
