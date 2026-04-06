@@ -10,4 +10,9 @@ public extension String {
     var trimmed: String {
         trimmingCharacters(in: .whitespacesAndNewlines)
     }
+
+    /// Parse `**bold**` markers into an `AttributedString`
+    var markdownAttributed: AttributedString {
+        (try? AttributedString(markdown: self)) ?? AttributedString(self)
+    }
 }
