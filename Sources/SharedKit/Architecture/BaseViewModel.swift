@@ -8,6 +8,11 @@ open class BaseViewModel: ObservableObject {
     /// Indicates whether the last failed operation can be retried
     @Published public var canRetry: Bool = false
 
+    /// Tracks whether a refresh operation is in progress.
+    /// Not `@Published` because UIKit's `UIRefreshControl` manages its own
+    /// spinner state — publishing would cause a redundant SwiftUI update cycle.
+    public var isRefreshing: Bool = false
+
     /// Storage for Combine subscriptions
     public var cancellables = Set<AnyCancellable>()
     private var lastFailedOperation: (() async -> Void)?
@@ -35,7 +40,10 @@ open class BaseViewModel: ObservableObject {
         context: String,
         retryOperation: (() async -> Void)? = nil
     ) {
-        guard !(error is CancellationError) else { isLoading = false; return }
+        let isCancellation = error is CancellationError
+            || (error as NSError).domain == NSURLErrorDomain
+                && (error as NSError).code == NSURLErrorCancelled
+        guard !isCancellation else { isLoading = false; return }
         isLoading = false
         self.error = error
         lastFailedOperation = retryOperation
@@ -53,14 +61,14 @@ open class BaseViewModel: ObservableObject {
 
     /// Clear any existing error
     open func clearError() {
-        error = nil
-        canRetry = false
+        if error != nil { error = nil }
+        if canRetry { canRetry = false }
         lastFailedOperation = nil
     }
 
     /// Set loading state
     open func setLoading(_ loading: Bool) {
-        isLoading = loading
+        if isLoading != loading { isLoading = loading }
     }
 
     /// Retry the last failed operation
@@ -72,6 +80,19 @@ open class BaseViewModel: ObservableObject {
         setLoading(true)
         clearError()
         await operation()
+    }
+
+    /// Executes an async operation with concurrent refresh protection.
+    /// If a refresh is already in progress, the call returns immediately.
+    public func withRefreshing(_ operation: () async throws -> Void) async {
+        guard !isRefreshing else { return }
+        isRefreshing = true
+        defer { isRefreshing = false }
+        do {
+            try await operation()
+        } catch {
+            handleError(error, context: "refresh")
+        }
     }
 
     // MARK: - Validation Helpers
