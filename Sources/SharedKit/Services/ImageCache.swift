@@ -100,7 +100,7 @@ public actor ImageCache: ImageCacheProtocol {
         }
 
         // Promote to memory
-        memoryCache.setObject(image, forKey: key as NSString)
+        memoryCache.setObject(image, forKey: key as NSString, cost: estimatedByteSize(image))
         return image
     }
 
@@ -108,7 +108,7 @@ public actor ImageCache: ImageCacheProtocol {
         let key = cacheKey(for: url)
 
         // Memory
-        memoryCache.setObject(image, forKey: key as NSString)
+        memoryCache.setObject(image, forKey: key as NSString, cost: estimatedByteSize(image))
 
         // Disk
         #if canImport(UIKit)
@@ -141,6 +141,16 @@ public actor ImageCache: ImageCacheProtocol {
     }
 
     // MARK: - Private
+
+    private func estimatedByteSize(_ image: PlatformImage) -> Int {
+        #if canImport(UIKit)
+        guard let cgImage = image.cgImage else { return 0 }
+        return cgImage.bytesPerRow * cgImage.height
+        #elseif canImport(AppKit)
+        guard let cgImage = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return 0 }
+        return cgImage.bytesPerRow * cgImage.height
+        #endif
+    }
 
     private func cacheKey(for url: URL) -> String {
         let data = Data(url.absoluteString.utf8)

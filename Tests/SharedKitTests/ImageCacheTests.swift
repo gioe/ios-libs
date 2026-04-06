@@ -54,6 +54,7 @@ struct ImageCacheTests {
         let retrieved = await cache.image(for: url)
 
         #expect(retrieved != nil)
+        await cache.clearDisk()
     }
 
     @Test("Returns nil for uncached URL")
@@ -64,6 +65,7 @@ struct ImageCacheTests {
         let result = await cache.image(for: url)
 
         #expect(result == nil)
+        await cache.clearDisk()
     }
 
     @Test("Remove evicts from cache")
@@ -76,6 +78,7 @@ struct ImageCacheTests {
         let result = await cache.image(for: url)
 
         #expect(result == nil)
+        await cache.clearDisk()
     }
 
     @Test("Clear memory preserves disk")
