@@ -58,6 +58,14 @@ public struct ColorTokens {
     /// Stat card color for "Best Score" style metrics
     public let statOrange: Color
 
+    // Surface text
+    /// Text color for content on filled/colored backgrounds (buttons, banners)
+    public let textOnPrimary: Color
+
+    // Overlay
+    /// Semi-transparent scrim for modal backdrops
+    public let scrim: Color
+
     public init(
         primary: Color,
         secondary: Color,
@@ -79,7 +87,9 @@ public struct ColorTokens {
         statBlue: Color,
         statGreen: Color,
         statPurple: Color,
-        statOrange: Color
+        statOrange: Color,
+        textOnPrimary: Color = ColorPalette.textOnPrimary,
+        scrim: Color = ColorPalette.scrim
     ) {
         self.primary = primary
         self.secondary = secondary
@@ -102,6 +112,8 @@ public struct ColorTokens {
         self.statGreen = statGreen
         self.statPurple = statPurple
         self.statOrange = statOrange
+        self.textOnPrimary = textOnPrimary
+        self.scrim = scrim
     }
 }
 
@@ -338,7 +350,9 @@ public struct DefaultTheme: AppThemeProtocol {
         statBlue: ColorPalette.statBlue,
         statGreen: ColorPalette.statGreen,
         statPurple: ColorPalette.statPurple,
-        statOrange: ColorPalette.statOrange
+        statOrange: ColorPalette.statOrange,
+        textOnPrimary: ColorPalette.textOnPrimary,
+        scrim: ColorPalette.scrim
     )
 
     public let typography = TypographyTokens(

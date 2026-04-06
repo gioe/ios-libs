@@ -255,4 +255,14 @@ public enum ColorPalette {
 
     /// Accessible performance "good" text color - meets WCAG AA 4.5:1 contrast ratio
     public static let performanceGoodText = Color(light: Color(hex: "#008B8B") ?? .teal, dark: .teal)
+
+    // MARK: - Surface Text Colors
+
+    /// Text color for content placed on filled/colored backgrounds (e.g., primary buttons, banners)
+    public static let textOnPrimary = Color.white
+
+    // MARK: - Overlay Colors
+
+    /// Semi-transparent scrim for modal backdrops
+    public static let scrim = Color.black.opacity(0.4)
 }
