@@ -52,7 +52,10 @@ let package = Package(
         ),
         .target(
             name: "SharedKit",
-            dependencies: []
+            dependencies: [],
+            swiftSettings: [
+                .define("DebugBuild", .when(configuration: .debug))
+            ]
         ),
         .testTarget(
             name: "APIClientTests",
