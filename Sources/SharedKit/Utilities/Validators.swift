@@ -165,8 +165,7 @@ public enum Validators {
         let stripped = phone.unicodeScalars.filter { !allowedFormatting.contains($0) }
 
         // After stripping formatting, only digits should remain
-        guard stripped.allSatisfy(\.properties.isASCIIHexDigit),
-              stripped.allSatisfy({ $0.value >= 0x30 && $0.value <= 0x39 }) else {
+        guard stripped.allSatisfy({ $0.value >= 0x30 && $0.value <= 0x39 }) else {
             return .invalid("Phone number can only contain digits, spaces, hyphens, parentheses, or a leading +")
         }
 
