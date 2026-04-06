@@ -389,13 +389,7 @@ public actor OfflineOperationQueue<OpType: Codable & Hashable & Sendable>: Offli
 
     /// Set up network observation (must be called from actor context)
     private func observeNetworkChanges() {
-        // Only observe if the monitor supports Combine publishers
-        guard let observableMonitor = networkMonitor as? NetworkMonitor else {
-            isNetworkConnected = networkMonitor.isConnected
-            return
-        }
-
-        observableMonitor.$isConnected
+        networkMonitor.connectivityPublisher
             .dropFirst()
             .removeDuplicates()
             .sink { [weak self] (isConnected: Bool) in

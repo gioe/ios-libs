@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 import Network
 
@@ -5,6 +6,9 @@ import Network
 public protocol NetworkMonitorProtocol {
     /// Whether the device is currently connected to the network
     var isConnected: Bool { get }
+
+    /// Publisher that emits connectivity changes
+    var connectivityPublisher: AnyPublisher<Bool, Never> { get }
 }
 
 /// Monitors network connectivity status
@@ -13,6 +17,10 @@ public class NetworkMonitor: ObservableObject, NetworkMonitorProtocol {
 
     @Published public private(set) var isConnected: Bool = true
     @Published public private(set) var connectionType: ConnectionType = .unknown
+
+    public var connectivityPublisher: AnyPublisher<Bool, Never> {
+        $isConnected.eraseToAnyPublisher()
+    }
 
     private let monitor: NWPathMonitor
     private let queue = DispatchQueue(label: "NetworkMonitor")

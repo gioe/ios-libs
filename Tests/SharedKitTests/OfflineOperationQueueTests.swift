@@ -1,3 +1,4 @@
+import Combine
 import Testing
 import Foundation
 @testable import SharedKit
@@ -12,9 +13,11 @@ private enum TestOp: String, Codable, Hashable, Sendable {
 
 private final class MockNetworkMonitor: NetworkMonitorProtocol, Sendable {
     let isConnected: Bool
+    let connectivityPublisher: AnyPublisher<Bool, Never>
 
     init(isConnected: Bool = true) {
         self.isConnected = isConnected
+        self.connectivityPublisher = Just(isConnected).eraseToAnyPublisher()
     }
 }
 
