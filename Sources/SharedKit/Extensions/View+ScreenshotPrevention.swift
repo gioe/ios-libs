@@ -39,11 +39,15 @@ public extension View {
         accessibilityLabel: String? = nil
     ) -> some View {
         #if canImport(UIKit)
-        ScreenshotPreventedView(
-            content: self,
-            accessibilityIdentifier: accessibilityIdentifier,
-            accessibilityLabel: accessibilityLabel
-        )
+        if ProcessInfo.processInfo.arguments.contains("-DisableScreenshotPrevention") {
+            self
+        } else {
+            ScreenshotPreventedView(
+                content: self,
+                accessibilityIdentifier: accessibilityIdentifier,
+                accessibilityLabel: accessibilityLabel
+            )
+        }
         #else
         self
         #endif
@@ -160,12 +164,26 @@ private final class ScreenshotContainerView: UIView {
 
     var preferredSizeProvider: ((CGSize) -> CGSize)?
 
+    /// Caches the first valid width seen in `layoutSubviews` so that
+    /// `intrinsicContentSize` can return a stable height even before
+    /// the bounds settle (prevents layout drift during animations).
+    private var _lastValidWidth: CGFloat?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        if bounds.width > 0 {
+            _lastValidWidth = bounds.width
+        }
+    }
+
     override var intrinsicContentSize: CGSize {
         guard let provider = preferredSizeProvider else {
             return super.intrinsicContentSize
         }
-        let width = bounds.width > 0 ? bounds.width : 1
-        return provider(CGSize(width: width, height: 10000))
+        let width = _lastValidWidth ?? (bounds.width > 0 ? bounds.width : 1)
+        let computed = provider(CGSize(width: width, height: 10000))
+        // Only report height — let Auto Layout determine width.
+        return CGSize(width: UIView.noIntrinsicMetric, height: computed.height)
     }
 
     override func sizeThatFits(_ size: CGSize) -> CGSize {
