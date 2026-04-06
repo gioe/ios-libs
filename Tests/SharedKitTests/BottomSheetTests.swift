@@ -49,6 +49,12 @@ struct BottomSheetTests {
             let detent = BottomSheetDetent.fraction(0.1)
             #expect(detent.resolvedHeight(in: 1000) == 100)
         }
+
+        @Test("negative available height returns negative proportional value")
+        func negativeAvailableHeight() {
+            let detent = BottomSheetDetent.fraction(0.5)
+            #expect(detent.resolvedHeight(in: -800) == -400)
+        }
     }
 
     @Suite("resolvedHeight — height")
@@ -87,6 +93,12 @@ struct BottomSheetTests {
         func zeroAvailableHeight() {
             let detent = BottomSheetDetent.height(300)
             #expect(detent.resolvedHeight(in: 0) == 0)
+        }
+
+        @Test("positive height with negative available height clamps to available height")
+        func negativeAvailableHeight() {
+            let detent = BottomSheetDetent.height(300)
+            #expect(detent.resolvedHeight(in: -800) == -800)
         }
     }
 
