@@ -9,10 +9,14 @@ public enum PresentationStyle: Sendable {
 }
 
 /// A modal presentation request wrapping an arbitrary route.
-public struct ModalPresentation<Route: Hashable>: Identifiable {
+public struct ModalPresentation<Route: Hashable>: Identifiable, Equatable {
     public let id = UUID()
     public let route: Route
     public let style: PresentationStyle
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.route == rhs.route && lhs.style == rhs.style
+    }
 
     public init(route: Route, style: PresentationStyle) {
         self.route = route
@@ -102,6 +106,9 @@ public class NavigationCoordinator<Route: Hashable>: ObservableObject, Navigatio
     }
 
     public func present(_ route: Route, style: PresentationStyle) {
+        if activeModal != nil {
+            logger.warning("Replacing active modal — dismiss first to ensure clean animation transitions")
+        }
         logger.debug("Present \(String(describing: style)): \(String(describing: route), privacy: .public)")
         activeModal = ModalPresentation(route: route, style: style)
     }

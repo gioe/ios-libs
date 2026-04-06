@@ -65,32 +65,32 @@ struct NavigationCoordinatorTests {
     }
 
     @Test("Present sets activeModal with sheet style")
-    func presentSheet() {
+    func presentSheet() throws {
         let coordinator = NavigationCoordinator<TestRoute>()
         coordinator.present(.settings, style: .sheet)
 
-        let modal = try! #require(coordinator.activeModal)
+        let modal = try #require(coordinator.activeModal)
         #expect(modal.route == .settings)
         #expect(modal.style == .sheet)
     }
 
     @Test("Present sets activeModal with fullScreenCover style")
-    func presentFullScreenCover() {
+    func presentFullScreenCover() throws {
         let coordinator = NavigationCoordinator<TestRoute>()
         coordinator.present(.profile, style: .fullScreenCover)
 
-        let modal = try! #require(coordinator.activeModal)
+        let modal = try #require(coordinator.activeModal)
         #expect(modal.route == .profile)
         #expect(modal.style == .fullScreenCover)
     }
 
     @Test("Present replaces existing modal")
-    func presentReplacesModal() {
+    func presentReplacesModal() throws {
         let coordinator = NavigationCoordinator<TestRoute>()
         coordinator.present(.settings, style: .sheet)
         coordinator.present(.profile, style: .fullScreenCover)
 
-        let modal = try! #require(coordinator.activeModal)
+        let modal = try #require(coordinator.activeModal)
         #expect(modal.route == .profile)
         #expect(modal.style == .fullScreenCover)
     }
