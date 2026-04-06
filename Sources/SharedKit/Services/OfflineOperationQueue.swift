@@ -178,7 +178,7 @@ public actor OfflineOperationQueue<OpType: Codable & Hashable & Sendable>: Offli
     private var debounceTask: Task<Void, Never>?
 
     /// Cached network connectivity state (actor-isolated to avoid cross-actor access)
-    private var isNetworkConnected: Bool = true
+    private var isNetworkConnected: Bool
 
     /// Cancellables for Combine subscriptions
     private var cancellables = Set<AnyCancellable>()
@@ -215,6 +215,7 @@ public actor OfflineOperationQueue<OpType: Codable & Hashable & Sendable>: Offli
         self.networkMonitor = networkMonitor
         self.executor = executor
         self.logger = Logger(subsystem: subsystem, category: "OfflineOperationQueue")
+        self.isNetworkConnected = networkMonitor.isConnected
 
         // Load persisted operations
         pendingOperations = Self.loadOperations(from: userDefaults, key: storageKey)
