@@ -66,6 +66,10 @@ public protocol OfflineOperationQueueProtocol<OpType> {
     var failedOperations: [QueuedOperation<OpType>] { get async }
 
     /// Enqueue a new operation
+    ///
+    /// Duplicate coalescing: if an operation with the same `type` is already pending,
+    /// it is replaced (last-write-wins). This is ideal for idempotent updates but will
+    /// discard earlier payloads for non-idempotent operations.
     /// - Parameters:
     ///   - type: The type of operation
     ///   - payload: JSON-encoded operation data
@@ -84,16 +88,7 @@ public protocol OfflineOperationQueueProtocol<OpType> {
 // MARK: - OfflineOperationError
 
 /// Errors specific to offline operation queue
-public enum OfflineOperationError: LocalizedError {
-    case queueFull
-
-    public var errorDescription: String? {
-        switch self {
-        case .queueFull:
-            "The offline operation queue has reached its maximum capacity."
-        }
-    }
-}
+public enum OfflineOperationError: LocalizedError {}
 
 // MARK: - OfflineOperationQueue
 
@@ -378,7 +373,7 @@ public actor OfflineOperationQueue<OpType: Codable & Hashable & Sendable>: Offli
 
     /// Calculate exponential backoff delay for retry attempt
     private func calculateBackoffDelay(attempt: Int) -> TimeInterval {
-        // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+        // Exponential backoff: 2s, 4s, 8s, 16s (attempt 1→2s, 2→4s, 3→8s, 4→16s)
         pow(2.0, Double(attempt))
     }
 
