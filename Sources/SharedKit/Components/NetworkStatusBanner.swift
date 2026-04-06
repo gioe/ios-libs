@@ -64,38 +64,45 @@ public struct NetworkStatusBanner: View {
     // MARK: - Body
 
     public var body: some View {
-        if !monitor.isConnected && !isDismissed {
-            HStack(spacing: theme.spacing.sm) {
-                Image(systemName: "wifi.slash")
-                    .foregroundColor(resolvedTextColor)
-
-                Text(message)
-                    .font(theme.typography.bodySmall)
-                    .foregroundColor(resolvedTextColor)
-
-                Spacer()
-
-                Button {
-                    isDismissed = true
-                } label: {
-                    Image(systemName: "xmark")
+        Group {
+            if !monitor.isConnected && !isDismissed {
+                HStack(spacing: theme.spacing.sm) {
+                    Image(systemName: "wifi.slash")
                         .foregroundColor(resolvedTextColor)
-                        .font(.caption.weight(.semibold))
+
+                    Text(message)
+                        .font(theme.typography.bodySmall)
+                        .foregroundColor(resolvedTextColor)
+
+                    Spacer()
+
+                    Button {
+                        isDismissed = true
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundColor(resolvedTextColor)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .accessibilityLabel("Dismiss")
+                    .accessibilityIdentifier("networkStatusBanner.dismissButton")
                 }
-                .accessibilityLabel("Dismiss")
-                .accessibilityIdentifier("networkStatusBanner.dismissButton")
+                .padding(.horizontal, theme.spacing.md)
+                .padding(.vertical, theme.spacing.sm)
+                .frame(maxWidth: .infinity)
+                .background(resolvedBackgroundColor)
+                .transition(
+                    reduceMotion
+                        ? .opacity
+                        : .move(edge: .top).combined(with: .opacity)
+                )
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Network status: \(message)")
             }
-            .padding(.horizontal, theme.spacing.md)
-            .padding(.vertical, theme.spacing.sm)
-            .frame(maxWidth: .infinity)
-            .background(resolvedBackgroundColor)
-            .transition(
-                reduceMotion
-                    ? .opacity
-                    : .move(edge: .top).combined(with: .opacity)
-            )
-            .accessibilityElement(children: .contain)
-            .accessibilityLabel("Network status: \(message)")
+        }
+        .onChange(of: monitor.isConnected) { isConnected in
+            if isConnected {
+                isDismissed = false
+            }
         }
     }
 
