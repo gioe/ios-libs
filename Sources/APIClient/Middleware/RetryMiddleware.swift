@@ -46,7 +46,7 @@ public struct RetryMiddleware: ClientMiddleware, Sendable {
             maxDelay: TimeInterval = 30,
             jitterEnabled: Bool = true,
             retryAllMethods: Bool = false,
-            retryableStatusCodes: Set<Int> = Set(500...599)
+            retryableStatusCodes: Set<Int> = Set(500...599).union([429])
         ) {
             self.maxRetries = max(0, maxRetries)
             self.baseDelay = max(0, baseDelay)
@@ -113,13 +113,19 @@ public struct RetryMiddleware: ClientMiddleware, Sendable {
         let capped = min(exponential, configuration.maxDelay)
 
         if configuration.jitterEnabled {
-            // Add 0–50% jitter
-            let jitter = Double.random(in: 0...0.5) * capped
-            return capped + jitter
+            // Full jitter: random value in [0, capped] — naturally bounded by maxDelay
+            return Double.random(in: 0...capped)
         }
 
         return capped
     }
+
+    private static let httpDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
+        return formatter
+    }()
 
     /// Parses the `Retry-After` header value as either seconds or an HTTP-date.
     private func retryAfterDelay(from headers: HTTPFields) -> TimeInterval? {
@@ -131,10 +137,7 @@ public struct RetryMiddleware: ClientMiddleware, Sendable {
         }
 
         // Try parsing as HTTP-date (RFC 7231)
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "EEE, dd MMM yyyy HH:mm:ss zzz"
-        if let date = formatter.date(from: value) {
+        if let date = Self.httpDateFormatter.date(from: value) {
             let delay = date.timeIntervalSinceNow
             return delay > 0 ? delay : 0
         }
