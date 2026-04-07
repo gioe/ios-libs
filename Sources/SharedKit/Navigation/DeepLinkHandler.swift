@@ -66,6 +66,12 @@ public class DeepLinkHandler<Parser: DeepLinkParser> {
     private let parser: Parser
     private let logger: Logger
 
+    /// Whether a deep link is currently being processed asynchronously.
+    ///
+    /// When `true`, subsequent calls to ``handle(url:onRoute:)`` return `false`
+    /// immediately, preventing concurrent deep link processing.
+    public private(set) var isProcessingDeepLink = false
+
     public init(
         coordinator: NavigationCoordinator<Route>,
         parser: Parser,
@@ -98,6 +104,49 @@ public class DeepLinkHandler<Parser: DeepLinkParser> {
             coordinator.popToRoot()
             coordinator.push(route)
         }
+
+        return true
+    }
+
+    /// Handle an incoming URL asynchronously with a concurrent processing guard.
+    ///
+    /// If another deep link is already being processed, this call returns `false`
+    /// immediately and the URL is dropped. This prevents duplicate navigation when
+    /// multiple deep links arrive in quick succession (e.g., rapid `onOpenURL` fires).
+    ///
+    /// - Parameters:
+    ///   - url: The URL to handle (custom scheme or universal link).
+    ///   - onRoute: Optional async work to perform after routing (e.g., an API call).
+    ///              The handler remains in the "processing" state until this completes.
+    /// - Returns: `true` if the URL was recognized and routed, `false` otherwise.
+    @discardableResult
+    public func handle(url: URL, onRoute: (() async -> Void)? = nil) async -> Bool {
+        guard !isProcessingDeepLink else {
+            logger.debug("Dropping deep link (already processing): \(url.absoluteString, privacy: .public)")
+            return false
+        }
+
+        isProcessingDeepLink = true
+        defer { isProcessingDeepLink = false }
+
+        logger.debug("Handling URL: \(url.absoluteString, privacy: .public)")
+
+        guard let action = parser.parse(url: url) else {
+            logger.debug("Unrecognized URL: \(url.absoluteString, privacy: .public)")
+            return false
+        }
+
+        switch action {
+        case .push(let route):
+            coordinator.push(route)
+        case .present(let route, let style):
+            coordinator.present(route, style: style)
+        case .popToRootThenPush(let route):
+            coordinator.popToRoot()
+            coordinator.push(route)
+        }
+
+        await onRoute?()
 
         return true
     }

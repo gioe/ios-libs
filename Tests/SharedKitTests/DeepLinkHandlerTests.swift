@@ -182,4 +182,33 @@ struct DeepLinkHandlerTests {
 
         #expect(coordinator.path.count == 2)
     }
+
+    // MARK: - Concurrent Processing Guard
+
+    @Test("Concurrent deep link processing guard drops second link while first is in progress")
+    func concurrentProcessingGuard() async {
+        let handler = handler
+
+        // First deep link — slow async work keeps isProcessingDeepLink set
+        let first = Task { @MainActor in
+            await handler.handle(url: URL(string: "myapp://app/detail?id=1")!) {
+                // Yield the main actor while still "processing"
+                try? await Task.sleep(for: .milliseconds(50))
+            }
+        }
+
+        // Second deep link — should be dropped because first is still processing
+        let second = Task { @MainActor in
+            await handler.handle(url: URL(string: "myapp://app/detail?id=2")!)
+        }
+
+        let firstResult = await first.value
+        let secondResult = await second.value
+
+        #expect(firstResult == true)
+        #expect(secondResult == false)
+        #expect(handler.isProcessingDeepLink == false)
+        // Only the first link's route should be in the path
+        #expect(coordinator.path.count == 1)
+    }
 }
