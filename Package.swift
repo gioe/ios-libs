@@ -18,11 +18,6 @@ let package = Package(
         )
     ],
     dependencies: [
-        // Swift OpenAPI Generator - build tool plugin
-        .package(
-            url: "https://github.com/apple/swift-openapi-generator",
-            from: "1.10.4"
-        ),
         // Swift OpenAPI Runtime - runtime library for generated code
         .package(
             url: "https://github.com/apple/swift-openapi-runtime",
@@ -50,9 +45,6 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DebugBuild", .when(configuration: .debug))
-            ],
-            plugins: [
-                .plugin(name: "OpenAPIGenerator", package: "swift-openapi-generator")
             ]
         ),
         .target(
