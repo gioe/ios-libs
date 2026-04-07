@@ -1,7 +1,7 @@
 import Foundation
 
 /// Protocol for app state storage operations
-public protocol AppStateStorageProtocol {
+public protocol AppStateStorageProtocol: Sendable {
     func setValue(_ value: some Encodable, forKey key: String)
     func getValue<T: Decodable>(forKey key: String, as type: T.Type) -> T?
     func removeValue(forKey key: String)
@@ -15,7 +15,7 @@ public protocol AppStateStorageProtocol {
 /// complex Codable types fall back to JSON encoding.
 ///
 /// Thread Safety: Uses a serial DispatchQueue for thread-safe access to storage operations.
-public class AppStateStorage: AppStateStorageProtocol {
+public final class AppStateStorage: AppStateStorageProtocol, @unchecked Sendable {
     private let userDefaults: UserDefaults
     /// Serial queue for thread-safe access to storage operations
     private let queue = DispatchQueue(label: "com.sharedkit.appStateStorage")
