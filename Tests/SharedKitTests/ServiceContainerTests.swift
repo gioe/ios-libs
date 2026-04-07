@@ -65,6 +65,16 @@ struct ServiceContainerTests {
         #expect(a.id != b.id)
     }
 
+    @Test("register(_:scope:instance:) returns the same object on resolve")
+    func registerInstance() {
+        let container = ServiceContainer()
+        let original = HelloService()
+        container.register(GreetingService.self, scope: .appLevel, instance: original)
+
+        let resolved: GreetingService = container.resolve()
+        #expect(resolved as AnyObject === original)
+    }
+
     @Test("Re-registration clears cached singleton")
     func reRegistration() {
         let container = ServiceContainer()
