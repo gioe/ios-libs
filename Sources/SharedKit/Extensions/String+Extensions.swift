@@ -15,4 +15,14 @@ public extension String {
     var markdownAttributed: AttributedString {
         (try? AttributedString(markdown: self)) ?? AttributedString(self)
     }
+
+    /// Returns the localized version of this string using the main bundle.
+    var localized: String {
+        NSLocalizedString(self, comment: "")
+    }
+
+    /// Returns the localized version of this string with format arguments.
+    func localized(with arguments: CVarArg...) -> String {
+        String(format: NSLocalizedString(self, comment: ""), arguments: arguments)
+    }
 }
