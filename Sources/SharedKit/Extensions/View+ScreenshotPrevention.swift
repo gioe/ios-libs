@@ -42,6 +42,7 @@ public extension View {
         #if canImport(UIKit)
         if ProcessInfo.processInfo.arguments.contains("-DisableScreenshotPrevention") {
             self
+                .accessibilityIdentifier(accessibilityIdentifier ?? "")
         } else {
             ScreenshotPreventedView(
                 content: self,
@@ -137,10 +138,15 @@ private struct ScreenshotPreventedView<Content: View>: UIViewRepresentable {
         uiView: ScreenshotContainerView,
         coordinator: Coordinator
     ) -> CGSize? {
-        let width: CGFloat = if let proposed = proposal.width {
-            max(proposed, 1)
+        let width: CGFloat
+        if let proposed = proposal.width {
+            width = max(proposed, 1)
+        } else if uiView.bounds.width > 0 {
+            width = uiView.bounds.width
+        } else if uiView.lastValidWidth > 0 {
+            width = uiView.lastValidWidth
         } else {
-            uiView.bounds.width > 0 ? uiView.bounds.width : 1
+            return nil // No valid width yet; SwiftUI will use intrinsicContentSize
         }
         let targetSize = CGSize(width: width, height: 10000)
         return coordinator.hostingController?.sizeThatFits(in: targetSize)
@@ -160,31 +166,42 @@ private struct ScreenshotPreventedView<Content: View>: UIViewRepresentable {
 
 // MARK: - Container view
 
-private final class ScreenshotContainerView: UIView {
+final class ScreenshotContainerView: UIView {
     var onEnterWindow: (() -> Void)?
 
     var preferredSizeProvider: ((CGSize) -> CGSize)?
 
-    /// Caches the first valid width seen in `layoutSubviews` so that
-    /// `intrinsicContentSize` can return a stable height even before
-    /// the bounds settle (prevents layout drift during animations).
-    private var _lastValidWidth: CGFloat?
+    /// Cache the last real width so intrinsicContentSize doesn't fall back to
+    /// width=1 during animation frames where bounds haven't been assigned yet.
+    private var _lastValidWidth: CGFloat = 0
+
+    /// The last layout width cached by `layoutSubviews`; zero if no real layout has occurred.
+    var lastValidWidth: CGFloat {
+        _lastValidWidth
+    }
 
     override func layoutSubviews() {
         super.layoutSubviews()
         if bounds.width > 0 {
+            let isFirstValidWidth = _lastValidWidth == 0
             _lastValidWidth = bounds.width
+            // On the first layout with a real width, the hosting controller
+            // is now in the view hierarchy and can compute sizes accurately.
+            // Invalidate so SwiftUI re-queries sizeThatFits.
+            if isFirstValidWidth {
+                invalidateIntrinsicContentSize()
+            }
         }
     }
 
     override var intrinsicContentSize: CGSize {
-        guard let provider = preferredSizeProvider else {
-            return super.intrinsicContentSize
+        guard let provider = preferredSizeProvider, _lastValidWidth > 0 else {
+            return CGSize(width: UIView.noIntrinsicMetric, height: UIView.noIntrinsicMetric)
         }
-        let width = _lastValidWidth ?? (bounds.width > 0 ? bounds.width : 1)
-        let computed = provider(CGSize(width: width, height: 10000))
-        // Only report height — let Auto Layout determine width.
-        return CGSize(width: UIView.noIntrinsicMetric, height: computed.height)
+        // Only report height; leave width as noIntrinsicMetric so SwiftUI
+        // remains the sole authority on horizontal sizing.
+        let size = provider(CGSize(width: _lastValidWidth, height: 10000))
+        return CGSize(width: UIView.noIntrinsicMetric, height: size.height)
     }
 
     override func sizeThatFits(_ size: CGSize) -> CGSize {
