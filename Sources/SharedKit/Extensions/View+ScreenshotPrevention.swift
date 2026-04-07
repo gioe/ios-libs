@@ -34,6 +34,7 @@ public extension View {
     ///   underlying `ScreenshotContainerView` (iOS only; no-op on other platforms).
     /// - Parameter accessibilityLabel: VoiceOver label set directly on the underlying
     ///   `ScreenshotContainerView` (iOS only; no-op on other platforms).
+    @ViewBuilder
     func screenshotPrevented(
         accessibilityIdentifier: String? = nil,
         accessibilityLabel: String? = nil
