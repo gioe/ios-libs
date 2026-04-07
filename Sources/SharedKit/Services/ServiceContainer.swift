@@ -57,6 +57,19 @@ public final class ServiceContainer: @unchecked Sendable {
         return child
     }
 
+    /// Registers a pre-created instance for a given service type.
+    ///
+    /// This is a convenience for registering an already-instantiated service. The instance is
+    /// captured in a factory closure and behaves identically to a factory registration.
+    ///
+    /// - Parameters:
+    ///   - type: The protocol or type to register.
+    ///   - scope: `.appLevel` for singleton behavior, `.featureLevel` for a new instance each time.
+    ///   - instance: The pre-created instance to register.
+    public func register<T>(_ type: T.Type, scope: ServiceScope = .appLevel, instance: T) {
+        register(type, scope: scope) { instance }
+    }
+
     /// Registers a factory for a given service type.
     ///
     /// - Parameters:
