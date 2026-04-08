@@ -521,9 +521,76 @@ accessModifier: public
 namingStrategy: idiomatic
 ```
 
-## Step 12: Generate Consumer CLAUDE.md
+## Step 12: Generate Consumer CLAUDE.md (Dynamic)
 
-Write to `$TARGET_PATH/CLAUDE.md`:
+This step dynamically generates an ios-libs guidance section by scanning the ios-libs source tree at runtime. This ensures the CLAUDE.md always reflects the current state of the library — new components, services, or middleware added to ios-libs will automatically appear in future scaffolds.
+
+### Step 12a: Scan ios-libs Sources
+
+Resolve the ios-libs project root:
+
+```bash
+IOS_LIBS_ROOT="$(dirname "$(tusk path)")"
+```
+
+Run these discovery commands and capture the output:
+
+**SharedKit Components:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Components/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Services:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Services/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Design tokens:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Design/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Architecture:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Architecture/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Navigation:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Navigation/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Utilities:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Utilities/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**SharedKit Protocols:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Protocols/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**APIClient Middleware:**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/APIClient/Middleware/" 2>/dev/null | sed 's/\.swift$//' | sort
+```
+
+**APIClient top-level files (excluding GeneratedSources/):**
+```bash
+ls "$IOS_LIBS_ROOT/Sources/APIClient/"*.swift 2>/dev/null | xargs -I{} basename {} .swift | sort
+```
+
+Store all results — they will be formatted into the CLAUDE.md section below.
+
+### Step 12b: Build and Write CLAUDE.md
+
+If `$TARGET_PATH/CLAUDE.md` already exists, **append** to it (do not overwrite). Read the existing file first with the Read tool, then use the Write tool to write the original content plus the new section. If it does not exist, create a new file.
+
+The generated content has two parts: a **static project header** (always written) and a **dynamic ios-libs catalog** (built from the scan).
+
+#### Static project header
+
+Always include this at the top of the CLAUDE.md (or at the top of the appended section if the file already existed):
 
 ````markdown
 # CLAUDE.md
@@ -546,36 +613,124 @@ This project uses [ios-libs](https://github.com/gioe/ios-libs) for shared infras
 - **{PREFIX}Bridge** — Bridge target that wraps ios-libs SharedKit. Uses `@_implementationOnly import SharedKit` to prevent View extension symbol leaks. Add new SharedKit type re-exports here when needed.
 {IF_API}- **{PREFIX}APIClient** — API client target wrapping ios-libs APIClient. Add product-specific type extensions here.{/IF_API}
 
-### Why a Bridge Target?
-
-ios-libs SharedKit defines SwiftUI View extensions (typography helpers, design system modifiers) that collide with identically-named extensions in consumer apps. Linking both SharedKit and the app target causes "ambiguous use of" errors. The bridge target uses `@_implementationOnly import` to hide these extensions while re-exporting only the types you need.
-
 ### ios-libs Features Integrated
 
 {List the SELECTED_FEATURES and API/Auth choices made during scaffold}
-
-### Adding New SharedKit Types
-
-When you need a new type from SharedKit in your app:
-1. Open `Sources/{PREFIX}Bridge/{PREFIX}Bridge.swift`
-2. Add a `public typealias` for the type
-3. Import from `{PREFIX}Bridge` in your app code — never import SharedKit directly in `{PREFIX}App`
-
-### Before Creating New Components
-
-Check ios-libs SharedKit first — it may already have what you need:
-- Design tokens: `DesignSystem`, `ColorPalette`, `Typography`
-- Services: `BiometricAuthManager`, `KeychainStorage`, `NetworkMonitor`, `ToastManager`, etc.
-- Navigation: `NavigationCoordinator`, `CoordinatedNavigationStack`, `DeepLinkHandler`
-- Architecture: `BaseViewModel`, `ServiceContainer`, `@Injected`
-
-If you build something generic, consider proposing extraction via `/extract-to-libs`.
 ````
 
-Adapt the template:
-- Include the `{PREFIX}APIClient` section only if API was selected
+Adapt the static header:
+- Include the `{PREFIX}APIClient` target bullet only if API was selected
 - List the actual features selected in the "Features Integrated" section
-- Remove coordinator/navigation references if Simple NavigationStack was chosen
+
+#### Dynamic ios-libs catalog
+
+Build this section entirely from the scan results in Step 12a. Format each category using the discovered file names. **Only include categories that returned results** (skip empty directories).
+
+````markdown
+---
+
+## ios-libs Component Catalog
+
+> **Before creating new UI components, services, or utilities, check this catalog.** ios-libs SharedKit and APIClient provide tested, reusable implementations. Using them avoids duplication and ensures consistency across consumer apps.
+
+### UI Components (`SharedKit/Components/`)
+
+{List each component discovered in the scan, one per line, as a bullet: `- ComponentName`}
+
+### Services (`SharedKit/Services/`)
+
+{List each service discovered in the scan, one per line, as a bullet: `- ServiceName`}
+
+### Design System (`SharedKit/Design/`)
+
+{List each design file discovered: `- FileName` — e.g. `ColorPalette`, `DesignSystem`, `Typography`, `Theme`}
+
+### Architecture (`SharedKit/Architecture/`)
+
+{List each architecture file: `- FileName` — e.g. `BaseViewModel`, `ViewModelProtocol`}
+
+### Navigation (`SharedKit/Navigation/`)
+
+{List each navigation file: `- FileName` — e.g. `NavigationCoordinator`, `CoordinatedNavigationStack`, `DeepLinkHandler`}
+
+### Utilities (`SharedKit/Utilities/`)
+
+{List each utility file: `- FileName` — e.g. `Validators`, `AnyCodable`, `DebugFlags`}
+
+### Protocols (`SharedKit/Protocols/`)
+
+{List each protocol file: `- FileName` — e.g. `AnalyticsProvider`, `ErrorRecorder`, `RetryableError`}
+
+### APIClient Middleware (`APIClient/Middleware/`)
+
+{List each middleware file: `- FileName` — e.g. `AuthenticationMiddleware`, `LoggingMiddleware`, `RetryMiddleware`}
+
+### APIClient Core (`APIClient/`)
+
+{List each top-level APIClient file: `- FileName` — e.g. `APIClientFactory`, `APIError`}
+````
+
+#### Usage rules section
+
+Always append this after the catalog:
+
+````markdown
+## Usage Rules
+
+1. **Check ios-libs first.** Before creating a new UI component, service, utility, or middleware, search the catalog above. If ios-libs has it, use it via the bridge target.
+2. **Never import SharedKit directly in {PREFIX}App.** Always go through `{PREFIX}Bridge` to prevent View extension symbol collisions.
+3. **Add new re-exports to the bridge when needed.** If you need a SharedKit type not yet exposed:
+   1. Open `Sources/{PREFIX}Bridge/{PREFIX}Bridge.swift`
+   2. Add `public typealias MyType = SharedKit.MyType`
+   3. Import from `{PREFIX}Bridge` in your app code
+{IF_API}4. **Extend generated API types in {PREFIX}APIClient.** Product-specific convenience methods (e.g., `displayName` on a User schema) belong in `Sources/{PREFIX}APIClient/`, not in the app target.{/IF_API}
+````
+
+#### Bridge target pattern section
+
+Always append this:
+
+````markdown
+## Bridge Target Pattern
+
+### What It Does
+
+The bridge target (`{PREFIX}Bridge`) sits between your app and ios-libs SharedKit. It uses `@_implementationOnly import SharedKit` to hide SharedKit's internal symbols — especially SwiftUI View extensions — from leaking into your app target.
+
+### When You Need It
+
+You need a bridge target whenever:
+- Your app defines **its own SwiftUI View extensions** (e.g., `.cardStyle()`, `.themed()`) that could collide with SharedKit's extensions of the same name
+- You link **multiple SPM packages** that both extend SwiftUI View — the bridge isolates each package's extensions
+
+### When You Don't Need It
+
+If your app has **no custom View extensions** and only depends on ios-libs (no other extension-heavy packages), you could import SharedKit directly. However, keeping the bridge is recommended — it's zero-cost at runtime and protects against future collisions.
+
+### How It Works
+
+```
+{PREFIX}App ──imports──▶ {PREFIX}Bridge ──@_implementationOnly import──▶ SharedKit
+                         (public typealiases)
+```
+
+Only types listed as `public typealias` in the bridge are visible to the app. All other SharedKit symbols (View extensions, internal helpers) stay hidden.
+````
+
+#### Contribution guidance section
+
+Always append this:
+
+````markdown
+## Contributing Back to ios-libs
+
+If you build a component, service, or utility that is **generic enough to be reused across apps**, consider extracting it into ios-libs:
+
+1. Run `/extract-to-libs` from the ios-libs working directory — it will audit your project for extraction candidates
+2. Extraction candidates should be app-agnostic (no product-specific logic, no hardcoded config)
+3. Good candidates: UI components, design tokens, networking utilities, storage abstractions, validation logic
+4. Poor candidates: app-specific screens, product business logic, configuration tied to one backend
+````
 
 ## Step 13: Verify Compilation
 
