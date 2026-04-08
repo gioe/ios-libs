@@ -1,22 +1,28 @@
 ---
 name: scaffold
-description: Scaffold a greenfield iOS app project with ios-libs integration — interactive Q&A, file generation, and compilation verification
+description: Scaffold a greenfield iOS app project with ios-libs integration, or audit an existing project to recommend ios-libs adoption — interactive Q&A, file generation, and compilation verification
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion
 ---
 
-# Scaffold — Greenfield iOS App Generator
+# Scaffold — iOS App Generator & Adoption Auditor
 
-Generates a compilable iOS app project pre-wired with ios-libs (SharedKit + APIClient). Conducts an interactive interview, then writes Package.swift, App.swift, bridge target, and supporting files into the target directory.
+Two modes:
+- **Greenfield** (default) — generates a compilable iOS app project pre-wired with ios-libs
+- **Adopt** — audits an existing iOS project for hand-rolled equivalents of ios-libs services and produces a migration report
 
-## Step 0: Parse Target Path
+## Step 0: Parse Arguments and Detect Mode
 
-The user provides a directory path after `/scaffold`. It may be absolute or relative to the ios-libs project root.
+The user provides arguments after `/scaffold`. Supported forms:
+
+- `/scaffold /path/to/dir` — greenfield mode (create new project)
+- `/scaffold --adopt /path/to/existing-project` — adopt mode (audit existing project)
+- `/scaffold /path/to/dir` where the directory already contains a `Package.swift` or `*.xcodeproj` — **auto-detect adopt mode**
+
+### Resolve the path
 
 If no argument was provided, ask:
 
-> Where should the new project be created? Provide an absolute path or a path relative to this repo's root (e.g., `../my-new-app`).
-
-**Resolve to an absolute path:**
+> Where should the project be created (or where is the existing project to audit)? Provide an absolute path or a path relative to this repo's root.
 
 ```bash
 tusk path   # prints path to tasks.db; project root is its parent
@@ -24,13 +30,30 @@ tusk path   # prints path to tasks.db; project root is its parent
 
 If relative, prepend the project root. If absolute, use as-is. Store as `TARGET_PATH`.
 
-**Validate or create:**
+### Determine mode
+
+```bash
+ls "$TARGET_PATH/Package.swift" 2>/dev/null || ls "$TARGET_PATH/"*.xcodeproj 2>/dev/null
+```
+
+- If `--adopt` flag was passed → **adopt mode** (jump to [Adopt Mode](#adopt-mode))
+- If the directory contains `Package.swift` or `*.xcodeproj` → auto-detect adopt mode. Confirm with the user:
+
+  > `$TARGET_PATH` already contains an iOS project. Would you like to:
+  > 1. **Adopt** — audit for ios-libs migration opportunities
+  > 2. **Overwrite** — scaffold a new greenfield project (will overwrite conflicting files)
+
+  If the user picks Adopt → jump to [Adopt Mode](#adopt-mode). If Overwrite → continue with greenfield.
+
+- Otherwise → **greenfield mode** (continue below)
+
+### Greenfield path validation
 
 ```bash
 ls "$TARGET_PATH" 2>/dev/null || mkdir -p "$TARGET_PATH"
 ```
 
-If the directory exists and is non-empty, warn the user:
+If the directory exists and is non-empty (but not an iOS project), warn the user:
 
 > The directory `$TARGET_PATH` already exists and contains files. Scaffold will overwrite conflicting files. Continue?
 
@@ -784,3 +807,268 @@ After successful compilation, present a summary:
 ```
 
 Adapt the summary based on which files were actually generated.
+
+---
+
+# Adopt Mode
+
+Audits an existing iOS project for hand-rolled equivalents of ios-libs services, design system patterns, and architecture components. Produces a structured migration report and optionally creates tasks for each recommendation.
+
+## Adopt Step 1: Resolve ios-libs Root
+
+```bash
+IOS_LIBS_ROOT="$(dirname "$(tusk path)")"
+```
+
+Store this — it's used to dynamically discover what ios-libs offers.
+
+## Adopt Step 2: Discover ios-libs Capabilities
+
+Scan the ios-libs source tree to build the current list of available services, components, and patterns. This ensures the audit reflects the latest state of the library.
+
+```bash
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Services/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Components/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Design/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Architecture/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Navigation/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Utilities/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/SharedKit/Protocols/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/APIClient/Middleware/" 2>/dev/null | sed 's/\.swift$//' | sort
+ls "$IOS_LIBS_ROOT/Sources/APIClient/"*.swift 2>/dev/null | xargs -I{} basename {} .swift | sort
+```
+
+Store the results — they define what ios-libs can replace.
+
+## Adopt Step 3: Scan Consumer Project for Service Equivalents
+
+Search the consumer project's Swift files for patterns that indicate hand-rolled implementations of ios-libs services. Use Grep with the consumer project path.
+
+### Service Detection Patterns
+
+For each ios-libs service, grep the consumer project for characteristic patterns. These patterns detect both exact name matches and common alternative implementations:
+
+| ios-libs Service | Grep Patterns (any match = candidate) |
+|-----------------|--------------------------------------|
+| **NetworkMonitor** | `NWPathMonitor`, `class.*NetworkMonitor`, `protocol.*NetworkMonitor`, `Reachability` |
+| **KeychainStorage** | `SecItemAdd`, `SecItemCopy`, `kSecClass`, `class.*Keychain`, `protocol.*SecureStorage` |
+| **BiometricAuthManager** | `LAContext`, `evaluatePolicy`, `canEvaluatePolicy`, `class.*BiometricAuth` |
+| **ToastManager** | `class.*Toast`, `protocol.*Toast`, `struct.*ToastData` |
+| **HapticManager** | `UIImpactFeedbackGenerator`, `UINotificationFeedbackGenerator`, `class.*Haptic` |
+| **OfflineOperationQueue** | `class.*OfflineQueue`, `class.*SyncQueue`, `class.*PendingOperation` |
+| **DataCache** | `actor.*Cache`, `class.*DataCache`, `NSCache`, `protocol.*Cacheable` |
+| **ImageCache** | `class.*ImageCache`, `class.*ImageLoader`, `URLCache.*image` |
+| **AppStateStorage** | `class.*AppState.*Storage`, `@AppStorage`, `UserDefaults.*wrapper` |
+| **ServiceContainer** | `class.*Container`, `class.*DI`, `protocol.*Resolver`, `@propertyWrapper.*Inject` |
+| **BaseViewModel** | `class.*BaseViewModel`, `class.*ViewModel.*ObservableObject`, `protocol.*ViewModel.*isLoading` |
+| **NavigationCoordinator** | `class.*Coordinator`, `protocol.*Coordinator`, `class.*Router`, `class.*Navigator` |
+| **Validators** | `func.*validate.*email`, `func.*validate.*password`, `func.*isValid.*URL` |
+
+Run each pattern against `.swift` files in the consumer project. For each match:
+1. Record the file path and matched line
+2. Read the surrounding context (20 lines) to confirm it's an actual implementation, not just a reference or import
+3. Classify as **strong match** (full implementation found) or **weak match** (partial pattern, needs manual review)
+
+```bash
+# Example: detect NetworkMonitor equivalents
+rg -l "NWPathMonitor|class\s+\w*NetworkMonitor|protocol\s+\w*NetworkMonitor|Reachability" --type swift "$TARGET_PATH"
+```
+
+Use the Grep tool (not bash rg) for all pattern matching.
+
+## Adopt Step 4: Scan for Design System Opportunities
+
+Search the consumer project for raw design literals that could be replaced with SharedKit design tokens.
+
+### Color Literals
+
+```
+Color\(\s*red:|Color\(\s*#|UIColor\(\s*red:|\.init\(\s*red:
+Color\.\w+\.opacity|Color\(\s*"
+```
+
+Exclude matches inside files named `*ColorPalette*`, `*Theme*`, `*DesignSystem*`, or `*Colors*` — those are the consumer's own design system (which itself is a replacement candidate).
+
+### Font Literals
+
+```
+\.font\(\s*\.system\(|Font\.system\(|Font\.custom\(|UIFont\.\w+\(size:
+```
+
+Exclude matches inside files named `*Typography*`, `*FontStyle*`, or `*Theme*`.
+
+### Spacing/Layout Literals
+
+```
+\.padding\(\s*\d+\)|spacing:\s*\d+[^.0-9]|cornerRadius:\s*\d+[^.0-9]
+```
+
+These indicate hardcoded values that could use `DesignSystem.Spacing`, `DesignSystem.CornerRadius`, etc.
+
+### Assessment
+
+For each category, report:
+- **Count** of raw literals found
+- **Sample** (3-5 representative matches with file paths)
+- Whether the consumer has their **own design system** (centralized tokens) or uses scattered raw values
+
+If the consumer already has a centralized design system, recommend **replacing it** with SharedKit's design tokens. If they use scattered raw values, the recommendation is stronger — SharedKit provides immediate consistency.
+
+## Adopt Step 5: Check Existing SPM Dependencies
+
+Read the consumer's `Package.swift` (or scan `*.xcodeproj/project.pbxproj` for SPM references) to detect:
+
+1. **Already depends on ios-libs** — if so, note which products are imported and skip recommending what's already wired up
+2. **Conflicting packages** — packages that provide overlapping functionality (e.g., `KeychainAccess`, `Reachability`, `Alamofire`). These need migration plans, not just additions.
+3. **Name collisions** — if the consumer has local targets named `SharedKit` or `APIClient`, flag the need for renaming (per ios-libs CLAUDE.md consumer integration guidance)
+
+```bash
+cat "$TARGET_PATH/Package.swift" 2>/dev/null
+```
+
+If no Package.swift, check for Xcode project:
+```bash
+ls "$TARGET_PATH/"*.xcodeproj 2>/dev/null
+```
+
+## Adopt Step 6: Produce Structured Report
+
+Compile all findings into a structured report. Present it to the user with this format:
+
+````markdown
+# ios-libs Adoption Report
+
+**Project:** {TARGET_PATH}
+**Scan date:** {today's date}
+
+## Service Replacements
+
+| Consumer Implementation | ios-libs Replacement | Confidence | Files Affected |
+|------------------------|---------------------|-----------|---------------|
+| `CustomNetworkMonitor` in `Services/NetworkMonitor.swift` | `SharedKit.NetworkMonitor` | Strong | 3 files import it |
+| `KeychainWrapper` in `Utilities/Keychain.swift` | `SharedKit.KeychainStorage` | Strong | 5 files import it |
+| ... | ... | ... | ... |
+
+{For each row, include a brief explanation of what the consumer's implementation does and how it maps to the ios-libs equivalent.}
+
+## Design System Opportunities
+
+| Category | Raw Literals Found | Recommendation |
+|----------|-------------------|----------------|
+| Colors | 47 raw `Color(...)` across 12 files | Replace with `ColorPalette` tokens |
+| Fonts | 23 raw `Font.system(...)` across 8 files | Replace with `Typography` scale |
+| Spacing | 31 hardcoded padding values across 15 files | Replace with `DesignSystem.Spacing` tokens |
+
+{Include 3-5 sample matches per category}
+
+## Architecture Opportunities
+
+{If the project has custom ViewModel base classes, navigation coordinators, or DI containers, list them here with the ios-libs equivalent.}
+
+## Dependency Conflicts
+
+{List any existing SPM dependencies that overlap with ios-libs functionality.}
+- `KeychainAccess` → replace with `SharedKit.KeychainStorage`
+- `Reachability` → replace with `SharedKit.NetworkMonitor`
+
+## Integration Complexity
+
+**Estimated effort:** {Low / Medium / High}
+
+{Brief assessment based on:}
+- Number of replacements needed
+- Whether a bridge target is required (yes if consumer has View extensions)
+- Whether SPM dependencies need migration
+- Whether the consumer has their own design system (higher effort to migrate)
+
+## Recommended Migration Order
+
+{Ordered list from lowest-risk to highest-risk, with rationale:}
+1. **Add ios-libs dependency** — add `ios-libs` to Package.swift, create bridge target
+2. **Services** (one at a time) — replace hand-rolled services, each is self-contained
+3. **Architecture** — adopt BaseViewModel as base class for ViewModels
+4. **Design system** — replace raw literals with tokens (highest touch-count, do last)
+````
+
+## Adopt Step 7: Offer Task Creation
+
+After presenting the report, ask the user:
+
+> Would you like me to create migration tasks for these recommendations? Each replacement will become a separate task with acceptance criteria.
+
+If the user accepts, create tasks by invoking `/create-task` with a structured description. Build the description from the report findings:
+
+```
+Migration tasks for ios-libs adoption in {project name}:
+
+{For each service replacement:}
+- Replace {consumer implementation} with ios-libs {replacement}
+  Files: {list of affected files}
+  Depends on: "Add ios-libs dependency to Package.swift" (if not already present)
+
+{For design system migration:}
+- Migrate raw Color literals to SharedKit ColorPalette tokens ({count} occurrences across {file_count} files)
+  Depends on: "Add ios-libs dependency to Package.swift"
+- Migrate raw Font literals to SharedKit Typography scale ({count} occurrences across {file_count} files)
+  Depends on: "Migrate raw Color literals to SharedKit ColorPalette tokens"
+
+{For architecture adoption:}
+- Adopt SharedKit BaseViewModel as base class for ViewModels
+  Depends on: "Add ios-libs dependency to Package.swift"
+```
+
+The `/create-task` skill handles decomposition, criteria generation, deduplication, and dependency wiring.
+
+## Adopt Step 8: Generate Consumer CLAUDE.md
+
+Append ios-libs guidance to the consumer project's CLAUDE.md, using the **same dynamic generation mechanism** as greenfield Step 12.
+
+1. Check if `$TARGET_PATH/CLAUDE.md` exists
+2. If it exists, read it first — append the ios-libs section
+3. If it doesn't exist, create it
+
+Use the same Step 12a scan (already done in Adopt Step 2) and Step 12b template, but adapt the static header:
+
+- Skip the "Targets" section (the consumer's existing targets are their own)
+- Skip the "Features Integrated" section (not applicable — this is an audit, not a scaffold)
+- Include the full **ios-libs Component Catalog** (identical to greenfield)
+- Include the **Usage Rules** section, adapted:
+  - Replace `{PREFIX}Bridge` references with guidance to create a bridge target if one doesn't exist
+  - Note: "If you haven't set up a bridge target yet, see the Bridge Target Pattern section below"
+- Include the **Bridge Target Pattern** section (identical to greenfield, but with a generic `{AppName}Bridge` placeholder)
+- Include the **Contributing Back** section (identical to greenfield)
+
+Present the CLAUDE.md changes to the user before writing:
+
+> I'll append an ios-libs guidance section to your project's CLAUDE.md. This includes a component catalog, usage rules, and bridge target instructions. Proceed?
+
+## Adopt Step 9: Summary
+
+Present a final summary:
+
+````markdown
+## Adoption Audit Complete
+
+**Project:** {TARGET_PATH}
+
+### Findings
+
+- **{N} service replacements** identified (Strong: {n}, Weak: {n})
+- **{N} design system opportunities** ({color_count} colors, {font_count} fonts, {spacing_count} spacing)
+- **{N} architecture opportunities** identified
+- **{N} dependency conflicts** to resolve
+
+### Actions Taken
+
+- [x] Scanned project for ios-libs equivalents
+- [x] Produced adoption report
+- {[x] Created {N} migration tasks | [ ] Task creation skipped}
+- {[x] Appended ios-libs guidance to CLAUDE.md | [ ] CLAUDE.md update skipped}
+
+### Next Steps
+
+1. Review the migration tasks (if created) and prioritize based on your team's roadmap
+2. Start with the lowest-risk replacement — typically a self-contained service like NetworkMonitor or KeychainStorage
+3. Set up the bridge target before migrating any SharedKit components
+4. Run `/extract-to-libs` if you find generic code worth contributing back
+````
