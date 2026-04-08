@@ -23,7 +23,7 @@ Two Swift packages in one repo: **APIClient** and **SharedKit**.
 
 ### APIClient
 
-Built on Apple's OpenAPI Generator ecosystem. Replace `Sources/APIClient/openapi.json` with a backend spec and the build plugin generates `Types.swift` and `Client.swift` at build time (`openapi-generator-config.yaml` sets `accessModifier: public` and `namingStrategy: idiomatic`).
+Built on Apple's OpenAPI Generator ecosystem. Pre-generated `Types.swift` and `Client.swift` live in `Sources/APIClient/GeneratedSources/`. To regenerate after updating `Sources/APIClient/openapi.json`, run `swift package plugin --allow-writing-to-package-directory generate-code-from-openapi --target APIClient`. The generator config (`openapi-generator-config.yaml`) sets `accessModifier: public` and `namingStrategy: idiomatic`. The build tool plugin was removed to avoid Xcode plugin validation prompts in consumer projects.
 
 **Bring-your-own-extensions pattern:** Consumers implement product-specific `+UI.swift` extensions on the generated types rather than this package exposing a product target. The `AIQAPIClient` product was removed for this reason.
 
@@ -53,6 +53,20 @@ A design system + component library + service layer.
 - `NetworkMonitor` — singleton (`NetworkMonitor.shared`), `NWPathMonitor`-backed, publishes `isConnected` and `connectionType`
 
 **Validators** (`Sources/SharedKit/Utilities/Validators.swift`) — email, password, name, phone, URL, minimum length, and birth year validation returning `ValidationResult`.
+
+### Consumer Integration
+
+**SPM target name collisions:** Both `SharedKit` and `APIClient` target names will collide with consumer-local packages of the same name. Consumers must rename their local packages (e.g., `AIQSharedKit`, `AIQAPIClientCore`) before adding ios-libs as a dependency.
+
+**View extension symbol leaks:** ios-libs SharedKit defines SwiftUI View extensions (typography, design system) that collide with identically-named extensions in consumer-local packages. Linking both to the same Xcode target causes "ambiguous use of" errors. The workaround is a **bridge target** pattern:
+1. Create a separate SPM target (e.g., `AIQOfflineQueue`) that depends on ios-libs SharedKit
+2. Use `@_implementationOnly import SharedKit` to prevent symbol leaks
+3. Re-export needed types via `public typealias` declarations — this selectively exposes chosen symbols while `@_implementationOnly` keeps View extensions and other SharedKit symbols hidden from the app target
+4. Link the bridge target (not SharedKit directly) to the consumer app target
+
+**Cross-repo subagent limitations:** When working on consumer projects (e.g., aiq/ios) from the ios-libs working directory, background subagents may lack permission to edit files outside the primary working directory. Prefer making cross-repo edits directly rather than delegating to subagents.
+
+**Cross-repo commit workflow:** When a task's code changes land entirely in a consumer repo (e.g., aiq/ios) rather than ios-libs, `tusk commit` cannot track those commits. In this case: (1) make edits directly in the consumer repo, (2) commit in the consumer repo using `git commit` with the `[TASK-<id>]` prefix, (3) use `tusk criteria done <cid> --skip-verify` to mark criteria complete, and (4) log a progress checkpoint noting the consumer repo and branch where changes live.
 
 <!-- tusk-task-tools -->
 ## Tusk Task Lookup
