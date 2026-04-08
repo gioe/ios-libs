@@ -25,17 +25,21 @@ public struct ImageCacheConfiguration: Sendable {
     public var diskBytesLimit: Int
     /// Eviction policy
     public var evictionPolicy: CacheEvictionPolicy
+    /// Custom disk cache directory (nil uses the default system caches location)
+    public var diskCacheURL: URL?
 
     public init(
         memoryCountLimit: Int = 100,
         memoryBytesLimit: Int = 50 * 1024 * 1024,
         diskBytesLimit: Int = 100 * 1024 * 1024,
-        evictionPolicy: CacheEvictionPolicy = .lru
+        evictionPolicy: CacheEvictionPolicy = .lru,
+        diskCacheURL: URL? = nil
     ) {
         self.memoryCountLimit = memoryCountLimit
         self.memoryBytesLimit = memoryBytesLimit
         self.diskBytesLimit = diskBytesLimit
         self.evictionPolicy = evictionPolicy
+        self.diskCacheURL = diskCacheURL
     }
 }
 
@@ -61,8 +65,12 @@ public actor ImageCache: ImageCacheProtocol {
 
     public init(configuration: ImageCacheConfiguration = .init()) {
         self.configuration = configuration
-        let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-        self.diskCacheURL = caches.appendingPathComponent("SharedKit/ImageCache", isDirectory: true)
+        if let customURL = configuration.diskCacheURL {
+            self.diskCacheURL = customURL
+        } else {
+            let caches = fileManager.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            self.diskCacheURL = caches.appendingPathComponent("SharedKit/ImageCache", isDirectory: true)
+        }
 
         memoryCache.countLimit = configuration.memoryCountLimit
         memoryCache.totalCostLimit = configuration.memoryBytesLimit

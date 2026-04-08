@@ -17,11 +17,14 @@ struct ImageCacheTests {
         diskBytesLimit: Int = 1024 * 1024,
         evictionPolicy: CacheEvictionPolicy = .lru
     ) -> ImageCache {
-        ImageCache(configuration: .init(
+        let uniqueDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("ImageCacheTests/\(UUID().uuidString)", isDirectory: true)
+        return ImageCache(configuration: .init(
             memoryCountLimit: memoryCountLimit,
             memoryBytesLimit: 0,
             diskBytesLimit: diskBytesLimit,
-            evictionPolicy: evictionPolicy
+            evictionPolicy: evictionPolicy,
+            diskCacheURL: uniqueDir
         ))
     }
 
