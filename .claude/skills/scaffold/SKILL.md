@@ -429,16 +429,9 @@ public typealias ServiceScope = SharedKit.ServiceScope
 
 **Add re-exports based on selections:**
 
-If NAV_PATTERN uses coordinator:
+If NAV_PATTERN uses coordinator (do NOT re-export `AppRoute` — it is defined locally in the app target):
 ```swift
 // Navigation
-public typealias NavigationCoordinator = SharedKit.NavigationCoordinator
-public typealias CoordinatedNavigationStack = SharedKit.CoordinatedNavigationStack
-public typealias AppRoute = SharedKit.AppRoute  // Remove this — AppRoute is defined locally
-```
-
-**Wait** — `AppRoute` is defined locally in the app target, not in SharedKit. Only re-export `NavigationCoordinator` and `CoordinatedNavigationStack`:
-```swift
 public typealias NavigationCoordinator = SharedKit.NavigationCoordinator
 public typealias CoordinatedNavigationStack = SharedKit.CoordinatedNavigationStack
 public typealias ModalPresentation = SharedKit.ModalPresentation
