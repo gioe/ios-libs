@@ -1,6 +1,7 @@
 import Foundation
 import OpenAPIRuntime
 import OpenAPIURLSession
+import SharedKit
 
 /// Date transcoder that handles ISO 8601 dates both with and without fractional seconds.
 ///
@@ -87,13 +88,16 @@ public final class APIClientFactory {
     ///   - serverURL: The base URL for API requests
     ///   - logLevel: The logging level (defaults to `.debug` in DEBUG, `.error` otherwise)
     ///   - retryConfiguration: Configuration for retry behavior. Pass `nil` to disable retries.
+    ///   - secureStorage: Optional secure storage for persisting auth tokens across app launches.
+    ///     When provided, `AuthenticationMiddleware` will load tokens on init and persist changes.
     public init(
         serverURL: URL,
         logLevel: LoggingMiddleware.LogLevel? = nil,
-        retryConfiguration: RetryMiddleware.Configuration? = .init()
+        retryConfiguration: RetryMiddleware.Configuration? = .init(),
+        secureStorage: SecureStorageProtocol? = nil
     ) {
         self.serverURL = serverURL
-        authMiddleware = AuthenticationMiddleware()
+        authMiddleware = AuthenticationMiddleware(secureStorage: secureStorage)
         loggingMiddleware = LoggingMiddleware(logLevel: logLevel)
         retryMiddleware = RetryMiddleware(configuration: retryConfiguration ?? .init(maxRetries: 0))
     }
