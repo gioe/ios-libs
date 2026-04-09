@@ -125,7 +125,7 @@ public class ShowListViewModel: BaseViewModel, PaginatedDataSource {
     }
 
     public func loadMore() async {
-        guard hasMorePages, !isLoadingMore else { return }
+        guard hasMorePages, !isLoadingMore, !isLoading else { return }
         isLoadingMore = true
         let nextPage = currentPage + 1
 
@@ -137,7 +137,9 @@ public class ShowListViewModel: BaseViewModel, PaginatedDataSource {
             isLoadingMore = false
         } catch {
             isLoadingMore = false
-            self.error = error
+            handleError(error, context: "loadMoreShows") { [weak self] in
+                await self?.loadMore()
+            }
         }
     }
 
