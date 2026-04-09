@@ -142,7 +142,7 @@ public struct ClubDetailView: View {
             rows.append(ContactRow(
                 icon: "phone.fill",
                 label: phone,
-                url: URL(string: "tel:\(phone.replacingOccurrences(of: " ", with: ""))")
+                url: URL(string: "tel:\(phone.filter { $0.isNumber || $0 == "+" })")
             ))
         }
         if let website = club.websiteURL {
