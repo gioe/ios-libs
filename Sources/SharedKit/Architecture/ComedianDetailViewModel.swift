@@ -36,6 +36,7 @@ public class ComedianDetailViewModel: BaseViewModel {
 
     /// Loads the comedian detail from the service.
     public func load() async {
+        guard !isLoading else { return }
         clearError()
         setLoading(true)
 
