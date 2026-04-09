@@ -1,6 +1,15 @@
 import Combine
 import Foundation
 
+/// Shared keychain key constants for auth token storage.
+///
+/// Used by both `AuthTokenManager` (SharedKit) and `AuthenticationMiddleware` (APIClient)
+/// to ensure both components read/write the same keychain entries.
+public enum AuthStorageKeys {
+    public static let accessToken = "auth_access_token"
+    public static let refreshToken = "auth_refresh_token"
+}
+
 /// Manages authentication token persistence using secure storage.
 ///
 /// `AuthTokenManager` bridges the gap between in-memory token state (used by middleware)
@@ -25,12 +34,6 @@ import Foundation
 /// ```
 @MainActor
 public class AuthTokenManager: ObservableObject {
-    // MARK: - Constants
-
-    private enum Keys {
-        static let accessToken = "auth_access_token"
-        static let refreshToken = "auth_refresh_token"
-    }
 
     // MARK: - Published Properties
 
@@ -48,7 +51,7 @@ public class AuthTokenManager: ObservableObject {
     public init(secureStorage: SecureStorageProtocol) {
         self.secureStorage = secureStorage
         // Check for existing tokens on init
-        isAuthenticated = (try? secureStorage.retrieve(forKey: Keys.accessToken)) != nil
+        isAuthenticated = (try? secureStorage.retrieve(forKey: AuthStorageKeys.accessToken)) != nil
     }
 
     // MARK: - Token Operations
@@ -58,25 +61,25 @@ public class AuthTokenManager: ObservableObject {
     ///   - accessToken: The JWT access token
     ///   - refreshToken: The JWT refresh token
     public func storeTokens(accessToken: String, refreshToken: String) throws {
-        try secureStorage.save(accessToken, forKey: Keys.accessToken)
-        try secureStorage.save(refreshToken, forKey: Keys.refreshToken)
+        try secureStorage.save(accessToken, forKey: AuthStorageKeys.accessToken)
+        try secureStorage.save(refreshToken, forKey: AuthStorageKeys.refreshToken)
         isAuthenticated = true
     }
 
     /// Retrieves the stored access token, if any.
     public func retrieveAccessToken() -> String? {
-        try? secureStorage.retrieve(forKey: Keys.accessToken)
+        try? secureStorage.retrieve(forKey: AuthStorageKeys.accessToken)
     }
 
     /// Retrieves the stored refresh token, if any.
     public func retrieveRefreshToken() -> String? {
-        try? secureStorage.retrieve(forKey: Keys.refreshToken)
+        try? secureStorage.retrieve(forKey: AuthStorageKeys.refreshToken)
     }
 
     /// Clears all stored auth tokens (sign-out).
     public func clearTokens() throws {
-        try secureStorage.delete(forKey: Keys.accessToken)
-        try secureStorage.delete(forKey: Keys.refreshToken)
+        try secureStorage.delete(forKey: AuthStorageKeys.accessToken)
+        try secureStorage.delete(forKey: AuthStorageKeys.refreshToken)
         isAuthenticated = false
     }
 }

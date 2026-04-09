@@ -125,6 +125,7 @@ public class AuthViewModel: BaseViewModel {
             try tokenManager.clearTokens()
         } catch {
             handleError(error, context: "signOut")
+            return
         }
         await onSignedOut?()
         resetForm()

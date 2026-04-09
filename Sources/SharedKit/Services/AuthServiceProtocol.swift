@@ -1,7 +1,7 @@
 import Foundation
 
 /// Token pair returned by authentication operations.
-public struct AuthTokens: Sendable {
+public struct AuthTokens: Sendable, Equatable {
     public let accessToken: String
     public let refreshToken: String
 

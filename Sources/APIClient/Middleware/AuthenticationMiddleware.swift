@@ -1,6 +1,7 @@
 import Foundation
 import HTTPTypes
 import OpenAPIRuntime
+import os
 import SharedKit
 
 /// A middleware that adds authentication tokens to outgoing requests.
@@ -37,10 +38,7 @@ public actor AuthenticationMiddleware: ClientMiddleware {
     /// Optional persistent storage for tokens (e.g., KeychainStorage)
     private let secureStorage: SecureStorageProtocol?
 
-    private enum StorageKeys {
-        static let accessToken = "auth_access_token"
-        static let refreshToken = "auth_refresh_token"
-    }
+    private let logger = Logger(subsystem: "com.apiclient", category: "AuthenticationMiddleware")
 
     /// Creates a new authentication middleware
     /// - Parameters:
@@ -56,8 +54,8 @@ public actor AuthenticationMiddleware: ClientMiddleware {
         self.secureStorage = secureStorage
         // Load from storage if available, falling back to provided values
         if let storage = secureStorage {
-            self.accessToken = (try? storage.retrieve(forKey: StorageKeys.accessToken)) ?? accessToken
-            self.refreshToken = (try? storage.retrieve(forKey: StorageKeys.refreshToken)) ?? refreshToken
+            self.accessToken = (try? storage.retrieve(forKey: AuthStorageKeys.accessToken)) ?? accessToken
+            self.refreshToken = (try? storage.retrieve(forKey: AuthStorageKeys.refreshToken)) ?? refreshToken
         } else {
             self.accessToken = accessToken
             self.refreshToken = refreshToken
@@ -68,14 +66,14 @@ public actor AuthenticationMiddleware: ClientMiddleware {
     /// - Parameter token: The JWT access token, or nil to clear
     public func setAccessToken(_ token: String?) {
         accessToken = token
-        persistToken(token, forKey: StorageKeys.accessToken)
+        persistToken(token, forKey: AuthStorageKeys.accessToken)
     }
 
     /// Sets the refresh token for token refresh operations
     /// - Parameter token: The JWT refresh token, or nil to clear
     public func setRefreshToken(_ token: String?) {
         refreshToken = token
-        persistToken(token, forKey: StorageKeys.refreshToken)
+        persistToken(token, forKey: AuthStorageKeys.refreshToken)
     }
 
     /// Sets both tokens at once (convenience method for login/register responses)
@@ -85,16 +83,16 @@ public actor AuthenticationMiddleware: ClientMiddleware {
     public func setTokens(accessToken: String, refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
-        persistToken(accessToken, forKey: StorageKeys.accessToken)
-        persistToken(refreshToken, forKey: StorageKeys.refreshToken)
+        persistToken(accessToken, forKey: AuthStorageKeys.accessToken)
+        persistToken(refreshToken, forKey: AuthStorageKeys.refreshToken)
     }
 
     /// Clears both tokens (for logout)
     public func clearTokens() {
         accessToken = nil
         refreshToken = nil
-        persistToken(nil, forKey: StorageKeys.accessToken)
-        persistToken(nil, forKey: StorageKeys.refreshToken)
+        persistToken(nil, forKey: AuthStorageKeys.accessToken)
+        persistToken(nil, forKey: AuthStorageKeys.refreshToken)
     }
 
     /// Whether the middleware has a valid access token
@@ -111,10 +109,14 @@ public actor AuthenticationMiddleware: ClientMiddleware {
 
     private func persistToken(_ token: String?, forKey key: String) {
         guard let storage = secureStorage else { return }
-        if let token {
-            try? storage.save(token, forKey: key)
-        } else {
-            try? storage.delete(forKey: key)
+        do {
+            if let token {
+                try storage.save(token, forKey: key)
+            } else {
+                try storage.delete(forKey: key)
+            }
+        } catch {
+            logger.error("Failed to persist token for key '\(key)': \(error.localizedDescription)")
         }
     }
 

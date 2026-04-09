@@ -2,6 +2,7 @@
 import Foundation
 import HTTPTypes
 import OpenAPIRuntime
+@testable import SharedKit
 import Testing
 
 @Suite("AuthenticationMiddleware Tests")
@@ -316,5 +317,87 @@ struct AuthenticationMiddlewareTests {
         // Should complete without crashes or data races
         let hasToken = await middleware.hasAccessToken
         #expect(hasToken == true)
+    }
+
+    // MARK: - Secure Storage Persistence Tests
+
+    @Test("init loads tokens from secure storage")
+    func initLoadsTokensFromStorage() async throws {
+        let storage = InMemorySecureStorage()
+        try storage.save("stored-access", forKey: AuthStorageKeys.accessToken)
+        try storage.save("stored-refresh", forKey: AuthStorageKeys.refreshToken)
+
+        let middleware = AuthenticationMiddleware(secureStorage: storage)
+
+        let token = await middleware.getAccessToken()
+        #expect(token == "stored-access")
+
+        // Verify refresh token loaded by checking refresh endpoint
+        var capturedRequest: HTTPRequest?
+        let request = HTTPRequest(method: .post, scheme: "https", authority: "api.example.com", path: "/v1/auth/refresh")
+        _ = try await middleware.intercept(
+            request, body: nil,
+            baseURL: #require(URL(string: "https://api.example.com")),
+            operationID: "refresh_access_token_v1_auth_refresh_post"
+        ) { req, _, _ in
+            capturedRequest = req
+            return (HTTPResponse(status: .ok), nil)
+        }
+        #expect(capturedRequest?.headerFields[.authorization] == "Bearer stored-refresh")
+    }
+
+    @Test("setTokens persists to secure storage")
+    func setTokensPersistsToStorage() async throws {
+        let storage = InMemorySecureStorage()
+        let middleware = AuthenticationMiddleware(secureStorage: storage)
+
+        await middleware.setTokens(accessToken: "new-access", refreshToken: "new-refresh")
+
+        #expect(try storage.retrieve(forKey: AuthStorageKeys.accessToken) == "new-access")
+        #expect(try storage.retrieve(forKey: AuthStorageKeys.refreshToken) == "new-refresh")
+    }
+
+    @Test("clearTokens removes from secure storage")
+    func clearTokensRemovesFromStorage() async throws {
+        let storage = InMemorySecureStorage()
+        try storage.save("access", forKey: AuthStorageKeys.accessToken)
+        try storage.save("refresh", forKey: AuthStorageKeys.refreshToken)
+
+        let middleware = AuthenticationMiddleware(secureStorage: storage)
+        await middleware.clearTokens()
+
+        #expect(try storage.retrieve(forKey: AuthStorageKeys.accessToken) == nil)
+        #expect(try storage.retrieve(forKey: AuthStorageKeys.refreshToken) == nil)
+    }
+
+    @Test("init without secureStorage does not persist")
+    func initWithoutStorageDoesNotPersist() async {
+        let middleware = AuthenticationMiddleware(accessToken: "mem-only")
+        await middleware.setAccessToken("updated")
+
+        // No crash, works fine in memory-only mode
+        let token = await middleware.getAccessToken()
+        #expect(token == "updated")
+    }
+}
+
+/// In-memory mock of SecureStorageProtocol for middleware tests
+private final class InMemorySecureStorage: SecureStorageProtocol, @unchecked Sendable {
+    private var store: [String: String] = [:]
+
+    func save(_ value: String, forKey key: String) throws {
+        store[key] = value
+    }
+
+    func retrieve(forKey key: String) throws -> String? {
+        store[key]
+    }
+
+    func delete(forKey key: String) throws {
+        store.removeValue(forKey: key)
+    }
+
+    func deleteAll() throws {
+        store.removeAll()
     }
 }
