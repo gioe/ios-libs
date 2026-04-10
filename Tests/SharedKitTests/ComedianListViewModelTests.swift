@@ -1,3 +1,4 @@
+import Combine
 import Foundation
 @testable import SharedKit
 import Testing
@@ -204,6 +205,42 @@ struct ComedianListViewModelTests {
     }
 }
 
+// MARK: - Mock FavoritesManager
+
+private final class MockFavoritesManager: FavoritesManagerProtocol, @unchecked Sendable {
+    var favoriteStates: [Int: Bool] = [:]
+    var setInitialStateCalls: [(comedianId: Int, isFavorite: Bool)] = []
+    var toggleFavoriteCalls: [Int] = []
+    private let favoriteChangedSubject = PassthroughSubject<Int, Never>()
+
+    var favoriteChanged: AnyPublisher<Int, Never> {
+        favoriteChangedSubject.eraseToAnyPublisher()
+    }
+
+    func isFavorite(comedianId: Int) -> Bool {
+        favoriteStates[comedianId] ?? false
+    }
+
+    func setInitialState(comedianId: Int, isFavorite: Bool) {
+        setInitialStateCalls.append((comedianId, isFavorite))
+        favoriteStates[comedianId] = isFavorite
+    }
+
+    @discardableResult
+    func toggleFavorite(comedianId: Int) async -> Bool {
+        toggleFavoriteCalls.append(comedianId)
+        let newValue = !(favoriteStates[comedianId] ?? false)
+        favoriteStates[comedianId] = newValue
+        favoriteChangedSubject.send(comedianId)
+        return newValue
+    }
+
+    /// Simulate an external favorite change (e.g., from another screen)
+    func simulateFavoriteChanged(comedianId: Int) {
+        favoriteChangedSubject.send(comedianId)
+    }
+}
+
 // MARK: - ComedianDetailViewModel Tests
 
 @Suite("ComedianDetailViewModel")
@@ -320,5 +357,132 @@ struct ComedianDetailViewModelTests {
 
         vm.selectShow(show)
         #expect(selectedShow?.id == 99)
+    }
+}
+
+// MARK: - ComedianDetailViewModel + FavoritesManager Integration Tests
+
+@Suite("ComedianDetailViewModel FavoritesManager Integration")
+struct ComedianDetailViewModelFavoritesIntegrationTests {
+
+    @MainActor
+    private func makeViewModel(
+        comedianId: Int = 1,
+        service: MockComedianService = MockComedianService(),
+        favoritesManager: MockFavoritesManager? = nil
+    ) -> (ComedianDetailViewModel, MockComedianService, MockFavoritesManager) {
+        let manager = favoritesManager ?? MockFavoritesManager()
+        let vm = ComedianDetailViewModel(
+            comedianId: comedianId,
+            comedianService: service,
+            favoritesManager: manager
+        )
+        return (vm, service, manager)
+    }
+
+    // MARK: - toggleFavorite delegation
+
+    @Test("toggleFavorite delegates to FavoritesManager when provided")
+    @MainActor
+    func toggleFavoriteDelegatesToManager() async {
+        let service = MockComedianService()
+        let comedian = makeComedian(id: 3, isFavorite: false)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, manager) = makeViewModel(comedianId: 3, service: service)
+        await vm.load()
+
+        await vm.toggleFavorite()
+
+        #expect(manager.toggleFavoriteCalls == [3])
+        // Service should NOT be called directly when manager is present
+        #expect(service.toggleFavoriteCalls.isEmpty)
+    }
+
+    @Test("toggleFavorite does not call service directly when manager is provided")
+    @MainActor
+    func toggleFavoriteSkipsDirectService() async {
+        let service = MockComedianService()
+        let comedian = makeComedian(id: 7, isFavorite: true)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, _) = makeViewModel(comedianId: 7, service: service)
+        await vm.load()
+
+        await vm.toggleFavorite()
+        await vm.toggleFavorite()
+
+        #expect(service.toggleFavoriteCalls.isEmpty)
+    }
+
+    // MARK: - favoriteChanged publisher
+
+    @Test("favoriteChanged publisher updates isFavorite on the VM")
+    @MainActor
+    func favoriteChangedUpdatesVM() async {
+        let service = MockComedianService()
+        let manager = MockFavoritesManager()
+        let comedian = makeComedian(id: 5, isFavorite: false)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, _) = makeViewModel(comedianId: 5, service: service, favoritesManager: manager)
+        await vm.load()
+        #expect(vm.isFavorite == false)
+
+        // Simulate an external change — manager state flips, then publisher fires
+        manager.favoriteStates[5] = true
+        manager.simulateFavoriteChanged(comedianId: 5)
+
+        #expect(vm.isFavorite == true)
+    }
+
+    @Test("favoriteChanged publisher ignores events for other comedians")
+    @MainActor
+    func favoriteChangedIgnoresOtherComedians() async {
+        let service = MockComedianService()
+        let manager = MockFavoritesManager()
+        let comedian = makeComedian(id: 2, isFavorite: false)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, _) = makeViewModel(comedianId: 2, service: service, favoritesManager: manager)
+        await vm.load()
+        #expect(vm.isFavorite == false)
+
+        // Fire change for a different comedian
+        manager.favoriteStates[99] = true
+        manager.simulateFavoriteChanged(comedianId: 99)
+
+        #expect(vm.isFavorite == false)
+    }
+
+    // MARK: - load() calls setInitialState
+
+    @Test("load calls setInitialState on the FavoritesManager")
+    @MainActor
+    func loadCallsSetInitialState() async {
+        let service = MockComedianService()
+        let comedian = makeComedian(id: 10, isFavorite: true)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, manager) = makeViewModel(comedianId: 10, service: service)
+        await vm.load()
+
+        #expect(manager.setInitialStateCalls.count == 1)
+        #expect(manager.setInitialStateCalls.first?.comedianId == 10)
+        #expect(manager.setInitialStateCalls.first?.isFavorite == true)
+    }
+
+    @Test("load passes isFavorite=false to setInitialState when comedian is not favorited")
+    @MainActor
+    func loadPassesFalseToSetInitialState() async {
+        let service = MockComedianService()
+        let comedian = makeComedian(id: 4, isFavorite: false)
+        service.detailResult = .success(ComedianDetail(comedian: comedian, upcomingShows: []))
+
+        let (vm, _, manager) = makeViewModel(comedianId: 4, service: service)
+        await vm.load()
+
+        #expect(manager.setInitialStateCalls.count == 1)
+        #expect(manager.setInitialStateCalls.first?.isFavorite == false)
     }
 }
