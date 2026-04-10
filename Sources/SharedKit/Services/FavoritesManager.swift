@@ -4,9 +4,17 @@ import os
 
 // MARK: - FavoriteOperationType
 
-/// Operation types for the favorites offline queue
-public enum FavoriteOperationType: String, Codable, Hashable, Sendable {
-    case toggle
+/// Operation type for the favorites offline queue.
+///
+/// Includes the comedian ID so that `OfflineOperationQueue`'s duplicate coalescing
+/// (which keys on `Hashable` equality of the operation type) is per-comedian.
+/// Toggling comedian A while comedian B's toggle is already queued will not overwrite it.
+public struct FavoriteOperationType: Codable, Hashable, Sendable {
+    public let comedianId: Int
+
+    public init(comedianId: Int) {
+        self.comedianId = comedianId
+    }
 }
 
 // MARK: - FavoriteTogglePayload
@@ -141,7 +149,7 @@ public final class FavoritesManager: FavoritesManagerProtocol, @unchecked Sendab
             // Offline: queue for later sync
             do {
                 let payload = try JSONEncoder().encode(FavoriteTogglePayload(comedianId: comedianId, isFavorite: newValue))
-                try await offlineQueue.enqueue(type: .toggle, payload: payload)
+                try await offlineQueue.enqueue(type: FavoriteOperationType(comedianId: comedianId), payload: payload)
                 logger.info("Queued favorite toggle for comedian \(comedianId) (offline)")
             } catch {
                 // Rollback if queuing fails

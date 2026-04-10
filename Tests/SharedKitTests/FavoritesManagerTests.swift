@@ -206,7 +206,7 @@ struct FavoritesManagerTests {
 
         // Enqueue manually (simulating what happens when offline toggle queues)
         let payload = try! JSONEncoder().encode(FavoriteTogglePayload(comedianId: 7, isFavorite: true))
-        try! await queue.enqueue(type: .toggle, payload: payload)
+        try! await queue.enqueue(type: FavoriteOperationType(comedianId: 7), payload: payload)
         #expect(await queue.operationCount == 1)
 
         // Trigger sync

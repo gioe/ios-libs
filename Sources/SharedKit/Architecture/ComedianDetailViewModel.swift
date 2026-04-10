@@ -42,7 +42,6 @@ public class ComedianDetailViewModel: BaseViewModel {
         if let favoritesManager {
             favoritesManager.favoriteChanged
                 .filter { [comedianId] id in id == comedianId }
-                .receive(on: DispatchQueue.main)
                 .sink { [weak self] _ in
                     guard let self else { return }
                     self.isFavorite = favoritesManager.isFavorite(comedianId: comedianId)
