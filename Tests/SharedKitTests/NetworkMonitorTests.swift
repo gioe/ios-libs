@@ -7,8 +7,7 @@ import Testing
 struct NetworkMonitorTests {
     @Test("initial state defaults to connected with unknown type")
     func initialState() {
-        let monitor = NetworkMonitor()
-        defer { monitor.stopMonitoring() }
+        let monitor = NetworkMonitor(startImmediately: false)
 
         #expect(monitor.isConnected)
         #expect(monitor.connectionType == .unknown)

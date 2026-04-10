@@ -34,10 +34,14 @@ public class NetworkMonitor: ObservableObject, NetworkMonitorProtocol {
 
     /// Initialize the network monitor
     ///
-    /// Automatically starts monitoring on initialization.
-    public init() {
+    /// - Parameter startImmediately: Whether to begin monitoring on init.
+    ///   Defaults to `true`. Pass `false` to defer monitoring until
+    ///   `startMonitoring()` is called explicitly.
+    public init(startImmediately: Bool = true) {
         monitor = NWPathMonitor()
-        startMonitoring()
+        if startImmediately {
+            startMonitoring()
+        }
     }
 
     public func startMonitoring() {
