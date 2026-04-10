@@ -6,3 +6,11 @@ DerivedData/
 .swiftpm/configuration/registries.json
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
 .netrc
+
+# tusk install files
+.claude/bin/
+.claude/settings.json
+.claude/tusk-manifest.json
+tusk/tasks.db
+tusk/tasks.db-wal
+tusk/tasks.db-shm
