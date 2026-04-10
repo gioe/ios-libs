@@ -176,6 +176,7 @@ public struct TypographyTokens {
 
 /// Spacing tokens mirroring DesignSystem.Spacing
 public struct SpacingTokens {
+    public let xxs: CGFloat
     public let xs: CGFloat
     public let sm: CGFloat
     public let md: CGFloat
@@ -187,6 +188,7 @@ public struct SpacingTokens {
     public let section: CGFloat
 
     public init(
+        xxs: CGFloat,
         xs: CGFloat,
         sm: CGFloat,
         md: CGFloat,
@@ -197,6 +199,7 @@ public struct SpacingTokens {
         huge: CGFloat,
         section: CGFloat
     ) {
+        self.xxs = xxs
         self.xs = xs
         self.sm = sm
         self.md = md
@@ -374,6 +377,7 @@ public struct DefaultTheme: AppThemeProtocol {
     )
 
     public let spacing = SpacingTokens(
+        xxs: DesignSystem.Spacing.xxs,
         xs: DesignSystem.Spacing.xs,
         sm: DesignSystem.Spacing.sm,
         md: DesignSystem.Spacing.md,
