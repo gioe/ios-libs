@@ -25,6 +25,18 @@ private enum TestError: Error {
     case executionFailed
 }
 
+private enum TestRetryableError: RetryableError {
+    case terminal
+    case transient
+
+    var isRetryable: Bool {
+        switch self {
+        case .terminal: return false
+        case .transient: return true
+        }
+    }
+}
+
 // MARK: - Tests
 
 @Suite("OfflineOperationQueue")
@@ -219,6 +231,72 @@ struct OfflineOperationQueueTests {
         let failed = await queue.failedOperations
         #expect(failed.count == 1)
         #expect(failed.first?.type == .updateProfile)
+    }
+
+    // MARK: - Fail-Fast (Non-Retryable Errors)
+
+    @Test("Non-retryable error skips retry budget and lands in failedOperations on first failure")
+    func nonRetryableErrorFailsFast() async throws {
+        let (defaults, suite) = makeDefaults()
+        defer { cleanDefaults(suiteName: suite) }
+
+        let callCount = UncheckedSendable(0)
+        let queue = makeQueue(maxRetryAttempts: 5, userDefaults: defaults) { _ in
+            callCount.value += 1
+            throw TestRetryableError.terminal
+        }
+
+        try await queue.enqueue(type: .updateProfile, payload: Data())
+        await queue.syncPendingOperations()
+
+        // Executor was called exactly once — no retries.
+        #expect(callCount.value == 1)
+        // Operation was removed from pending.
+        #expect(await queue.operationCount == 0)
+        // And landed in failedOperations despite maxRetryAttempts=5.
+        let failed = await queue.failedOperations
+        #expect(failed.count == 1)
+        #expect(failed.first?.type == .updateProfile)
+        #expect(failed.first?.attemptCount == 1)
+        #expect(failed.first?.error != nil)
+    }
+
+    @Test("Retryable error preserves existing retry/backoff behavior")
+    func retryableErrorRetriesAsBefore() async throws {
+        let (defaults, suite) = makeDefaults()
+        defer { cleanDefaults(suiteName: suite) }
+
+        let queue = makeQueue(maxRetryAttempts: 5, userDefaults: defaults) { _ in
+            throw TestRetryableError.transient
+        }
+
+        try await queue.enqueue(type: .updateProfile, payload: Data())
+        await queue.syncPendingOperations()
+
+        // Stays pending with attemptCount incremented — same as a plain throw.
+        #expect(await queue.operationCount == 1)
+        #expect(await queue.failedOperations.isEmpty)
+        let ops = await queue.pendingOperationsList
+        #expect(ops.first?.attemptCount == 1)
+    }
+
+    @Test("OfflineOperationError.terminal is non-retryable and fails fast")
+    func offlineOperationErrorTerminalFailsFast() async throws {
+        let (defaults, suite) = makeDefaults()
+        defer { cleanDefaults(suiteName: suite) }
+
+        let callCount = UncheckedSendable(0)
+        let queue = makeQueue(maxRetryAttempts: 5, userDefaults: defaults) { _ in
+            callCount.value += 1
+            throw OfflineOperationError.terminal(reason: "HTTP 401")
+        }
+
+        try await queue.enqueue(type: .updateProfile, payload: Data())
+        await queue.syncPendingOperations()
+
+        #expect(callCount.value == 1)
+        #expect(await queue.operationCount == 0)
+        #expect(await queue.failedOperations.count == 1)
     }
 
     // MARK: - Exponential Backoff

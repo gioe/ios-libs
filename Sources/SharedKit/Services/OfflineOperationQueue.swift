@@ -87,8 +87,31 @@ public protocol OfflineOperationQueueProtocol<OpType> {
 
 // MARK: - OfflineOperationError
 
-/// Errors specific to offline operation queue
-public enum OfflineOperationError: LocalizedError {}
+/// Errors specific to offline operation queue.
+///
+/// Conforms to ``RetryableError`` so executors can signal that a failure is terminal —
+/// e.g. an HTTP 4xx (401/404/422) where retrying will never succeed — and the queue
+/// should skip retry/backoff and route the operation directly to ``OfflineOperationQueue/failedOperations``.
+///
+/// Throwing a plain `Error` (or any error that does not conform to `RetryableError`)
+/// preserves the existing retry-with-backoff behavior. Only errors with
+/// `isRetryable == false` short-circuit the retry budget.
+public enum OfflineOperationError: LocalizedError, RetryableError {
+    /// The operation failed terminally and must not be retried.
+    case terminal(reason: String)
+
+    public var isRetryable: Bool {
+        switch self {
+        case .terminal: return false
+        }
+    }
+
+    public var errorDescription: String? {
+        switch self {
+        case .terminal(let reason): return reason
+        }
+    }
+}
 
 // MARK: - OfflineOperationQueue
 
@@ -128,8 +151,11 @@ public enum OfflineOperationError: LocalizedError {}
 ///
 /// ## Retry Policy
 /// - Configurable max retry attempts (default 5)
-/// - Exponential backoff: 1s, 2s, 4s, 8s, 16s
+/// - Exponential backoff: 2s, 4s, 8s, 16s (attempt N → 2^N seconds)
 /// - Operations exceeding max retries are moved to failedOperations
+/// - Executors that throw a ``RetryableError`` with `isRetryable == false` skip retry/backoff
+///   entirely and route the operation directly to failedOperations on the first failure.
+///   Use this for terminal HTTP responses (4xx) that will never succeed on retry.
 ///
 /// ## Persistence
 /// - Queue persists to UserDefaults after each modification
@@ -316,8 +342,27 @@ public actor OfflineOperationQueue<OpType: Codable & Hashable & Sendable>: Offli
             try await executor(operation)
             result.idsToRemove.append(operation.id)
         } catch {
-            handleOperationFailure(operation, error: error, result: &result)
+            if let retryable = error as? RetryableError, !retryable.isRetryable {
+                handleTerminalFailure(operation, error: error, result: &result)
+            } else {
+                handleOperationFailure(operation, error: error, result: &result)
+            }
         }
+    }
+
+    /// Mark an operation as permanently failed without consuming retry budget.
+    /// Used when the executor throws a ``RetryableError`` whose `isRetryable == false`.
+    private func handleTerminalFailure(
+        _ operation: QueuedOperation<OpType>,
+        error: Error,
+        result: inout SyncResult
+    ) {
+        var failedOperation = operation
+        failedOperation.attemptCount += 1
+        failedOperation.lastAttemptAt = Date()
+        failedOperation.error = error.localizedDescription
+        result.operationsToFail.append(failedOperation)
+        result.idsToRemove.append(operation.id)
     }
 
     /// Check if operation should be skipped due to backoff delay
