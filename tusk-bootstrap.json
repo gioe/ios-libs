@@ -1,19 +1,14 @@
 {
   "version": "1",
   "project_type": "ios_app",
-  "tasks": [
+  "manifest_files": [
     {
-      "summary": "Add gioe/ios-libs as an SPM dependency",
-      "description": "Add https://github.com/gioe/ios-libs to your Xcode project via Swift Package Manager. In Package.swift or Xcode's package manager UI, add the package and select the products you need.\n\nFor most projects start with SharedKit (generic UI components) and APIClient (HTTP client). Only add AIQAPIClient if you want the pre-built AIQ UI extensions; otherwise you will create your own product-specific target on top of APIClient.\n\nMinimum platform: iOS 16.",
-      "priority": "High",
-      "task_type": "feature",
-      "complexity": "XS",
-      "criteria": [
-        "ios-libs package resolves successfully in Xcode / swift build",
-        "Target dependencies include at least SharedKit or APIClient",
-        "Project builds cleanly after adding the package"
-      ]
-    },
+      "path": "Package.swift",
+      "content": "// swift-tools-version:5.9\nimport PackageDescription\n\nlet package = Package(\n    name: \"App\",\n    platforms: [.iOS(.v16)],\n    products: [\n        .library(name: \"App\", targets: [\"App\"])\n    ],\n    dependencies: [\n        .package(url: \"https://github.com/gioe/ios-libs\", branch: \"main\")\n    ],\n    targets: [\n        .target(\n            name: \"App\",\n            dependencies: [\n                .product(name: \"SharedKit\", package: \"ios-libs\"),\n                .product(name: \"APIClient\", package: \"ios-libs\")\n            ]\n        )\n    ]\n)\n",
+      "mode": "create_only"
+    }
+  ],
+  "tasks": [
     {
       "summary": "Configure SharedKit design tokens for the project",
       "description": "Import SharedKit and apply its design system to your SwiftUI app.\n\nSharedKit provides:\n- Color tokens (ColorTokens / ColorPalette)\n- Typography tokens (TextStyles)\n- Theme support (light / dark)\n- View extensions for consistent spacing and surface treatment\n\nSteps:\n1. Import SharedKit in your App entry point or root view.\n2. Inject the theme into the environment: `.environment(\\.colorScheme, ...)` or use SharedKit's ThemeEnvironmentKey if provided.\n3. Replace any raw Color / Font literals in your views with SharedKit tokens.\n4. Verify the design tokens render correctly in both light and dark mode.",
