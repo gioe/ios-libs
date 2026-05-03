@@ -19,7 +19,7 @@ Tests use Swift's `Testing` framework (`@Suite`, `@Test` macros), not XCTest.
 
 ## Architecture
 
-Two Swift packages in one repo: **APIClient** and **SharedKit**.
+Three Swift packages in one repo: **APIClient**, **SharedKit**, and **SharedKitTesting**.
 
 ### APIClient
 
@@ -56,6 +56,12 @@ A design system + component library + service layer.
 
 **Testing helpers** (`Sources/SharedKit/Testing/`):
 - `MockModeDetector` — reads `-UITestMockMode` from `ProcessInfo.processInfo.arguments`. Apps check `MockModeDetector.isMockMode` in their bootstrap to seed deterministic state for UI tests (saved nearby ZIP, mocked services, skipped permission prompts). UI tests opt in with `app.launchArguments.append(MockModeDetector.mockModeArgument)` before `app.launch()`. The detector intentionally has no scenario routing — apps that need scenarios layer their own enum on top.
+
+### SharedKitTesting
+
+A separate library target (`Sources/SharedKitTesting/`) carved out so consumer **UI test targets** can link XCTest-dependent helpers without inflating the main `SharedKit` product. Linked from a consumer's `LaughTrackUITests`-style target, not from the app target.
+
+- `BaseAppStoreScreenshotTests` — open `XCTestCase` subclass that handles boilerplate for fastlane snapshot flows: instantiates `XCUIApplication`, appends `MockModeDetector.mockModeArgument`, calls `app.launch()`, exposes a coordinate-based `tap(x:y:)` helper. Subclasses override `prepareForSnapshot()` (to call `setupSnapshot(app)` from the locally-bundled `SnapshotHelper.swift`), `configureLaunchArguments()` (to layer extra flags), and implement the per-app `testGenerateAllScreenshots()` navigation. The coordinate-tap helper exists because on iOS 18+ SwiftUI surfaces `Text()` and `Button` labels as `accessibilityElements` rather than as UIView subviews, so `app.tabBars.buttons["Search"]`, `app.buttons["my-id"]`, and similar XCUI element queries don't reliably resolve.
 
 ### Consumer Integration
 
