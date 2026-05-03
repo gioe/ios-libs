@@ -35,8 +35,8 @@ public enum MockModeDetector {
 
     /// Returns `true` when the app process was launched with
     /// `-UITestMockMode`. Implemented via `ProcessInfo.processInfo.arguments`,
-    /// which captures launch arguments passed by `XCUIApplication.launch()`,
-    /// `xcrun simctl launch`, and Xcode scheme arguments.
+    /// which captures launch arguments passed by `XCUIApplication.launch()`
+    /// and Xcode scheme arguments.
     public static var isMockMode: Bool {
         ProcessInfo.processInfo.arguments.contains(mockModeArgument)
     }
