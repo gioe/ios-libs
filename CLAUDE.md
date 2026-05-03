@@ -54,6 +54,9 @@ A design system + component library + service layer.
 
 **Validators** (`Sources/SharedKit/Utilities/Validators.swift`) — email, password, name, phone, URL, minimum length, and birth year validation returning `ValidationResult`.
 
+**Testing helpers** (`Sources/SharedKit/Testing/`):
+- `MockModeDetector` — reads `-UITestMockMode` from `ProcessInfo.processInfo.arguments`. Apps check `MockModeDetector.isMockMode` in their bootstrap to seed deterministic state for UI tests (saved nearby ZIP, mocked services, skipped permission prompts). UI tests opt in with `app.launchArguments.append(MockModeDetector.mockModeArgument)` before `app.launch()`. The detector intentionally has no scenario routing — apps that need scenarios layer their own enum on top.
+
 ### Consumer Integration
 
 **SPM target name collisions:** Both `SharedKit` and `APIClient` target names will collide with consumer-local packages of the same name. Consumers must rename their local packages (e.g., `AIQSharedKit`, `AIQAPIClientCore`) before adding ios-libs as a dependency.
