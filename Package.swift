@@ -15,6 +15,10 @@ let package = Package(
         .library(
             name: "SharedKit",
             targets: ["SharedKit"]
+        ),
+        .library(
+            name: "SharedKitTesting",
+            targets: ["SharedKitTesting"]
         )
     ],
     dependencies: [
@@ -54,6 +58,13 @@ let package = Package(
         .target(
             name: "SharedKit",
             dependencies: [],
+            swiftSettings: [
+                .define("DebugBuild", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "SharedKitTesting",
+            dependencies: ["SharedKit"],
             swiftSettings: [
                 .define("DebugBuild", .when(configuration: .debug))
             ]
