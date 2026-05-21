@@ -58,6 +58,9 @@ let package = Package(
         .target(
             name: "SharedKit",
             dependencies: [],
+            resources: [
+                .process("PrivacyInfo.xcprivacy")
+            ],
             swiftSettings: [
                 .define("DebugBuild", .when(configuration: .debug))
             ]
