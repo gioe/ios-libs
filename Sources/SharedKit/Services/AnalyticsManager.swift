@@ -27,11 +27,13 @@ public protocol AnalyticsManagerProtocol {
 
 /// Dispatches analytics calls to all registered providers
 ///
-/// Register concrete providers at app startup:
+/// Register your own provider(s) at app startup. Concrete provider types
+/// (Firebase Analytics, Mixpanel, etc.) are NOT shipped by SharedKit —
+/// implement `AnalyticsProvider` yourself wrapping whichever SDK you use:
 /// ```swift
+/// struct MyAnalyticsProvider: AnalyticsProvider { ... }
 /// let analytics = AnalyticsManager()
-/// analytics.addProvider(FirebaseAnalyticsProvider())
-/// analytics.addProvider(MixpanelProvider())
+/// analytics.addProvider(MyAnalyticsProvider())
 /// container.register(AnalyticsManagerProtocol.self, scope: .appLevel) { analytics }
 /// ```
 ///
