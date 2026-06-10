@@ -13,4 +13,10 @@ public extension View {
     ) -> some View {
         environmentObject(coordinator)
     }
+
+    func navigationCoordinator<Route: Hashable>(
+        _ coordinator: TypedNavigationCoordinator<Route>
+    ) -> some View {
+        environmentObject(coordinator)
+    }
 }
